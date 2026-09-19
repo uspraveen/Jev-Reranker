@@ -8,7 +8,7 @@
   "label_f1": 1.0,
   "judge_calls_per_rerank": 1.0,
   "fallback_rate": 0.0,
-  "p50_latency_ms": 1.3,
+  "p50_latency_ms": 1.29,
   "per_category_r1": {
     "stale": 0.0,
     "conflict": 0.0,
