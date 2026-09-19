@@ -104,6 +104,11 @@ is pipeline mechanics: exactly one judge call per rerank, perfect
 STALE/CONFLICT flagging on cue-bearing memories, zero fallbacks. Ranking
 quality against **live Jev is not yet measured** (`TYPESAFE_API_KEY` absent).
 
+Sandbox rerun: the same eval (`--n 300 --seed 7`) was executed inside a
+Blaxel sandbox (`learnchain` workspace, 2026-09-19, trace:
+`benchmarks/results/synthetic_eval_blaxel.json`) with identical results
+(r@1 0.1667, r@3 0.8333, F1 1.0, 1.0 calls/rerank, 0 fallback; p50 0.68 ms).
+
 Confidence snapshot (same 300 cases, top-1 bucketed by `min_confidence`):
 all 300 land in `[0.75, 1.00]` at accuracy 0.1667 — the lexical judge is
 uniformly overconfident, so its confidence carries no discrimination.
