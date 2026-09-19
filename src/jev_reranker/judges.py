@@ -1,0 +1,189 @@
+"""Judge backends: the thing that turns (query, candidates) into head judgments.
+
+- ``LiveJevJudge``: the real path — one ``TypeSafeClient.system_one()`` call
+  per rerank with all 4N questions batched. Requires ``TYPESAFE_API_KEY``.
+- ``OfflineJudge``: deterministic lexical judge with identical answer shapes,
+  for tests / synthetic eval / demos without a key. Clearly labeled everywhere
+  it is used; never presented as Jev output.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from typing import Any, Protocol
+
+from jev_reranker.models import Candidate
+
+_WORD = re.compile(r"[a-z0-9]+")
+
+
+def _tokens(text: str) -> set[str]:
+    return set(_WORD.findall(text.lower()))
+
+
+def _overlap(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
+class JudgeResult(dict[str, Any]):
+    """Mapping question-key -> raw answer dict (score/confidence or noul)."""
+
+
+class Judge(Protocol):
+    """Any backend that answers a batched question map in ONE call."""
+
+    @property
+    def model_name(self) -> str:
+        """Backend model identifier (used in traces)."""
+        ...
+
+    def judge(
+        self,
+        state: dict[str, Any],
+        questions: dict[str, dict[str, object]],
+        query: str,
+        candidates: list[Candidate],
+    ) -> tuple[JudgeResult, dict[str, int]]:
+        """Return (answers, usage). Must issue at most one remote call."""
+        ...
+
+
+class OfflineJudge:
+    """Deterministic lexical judge. Test/eval/demo use ONLY.
+
+    relevance/utility from token overlap between query and candidate;
+    superseded from explicit supersession cues + recency order;
+    conflict from contradiction cues vs. the query/other candidates.
+    """
+
+    model_name = "offline-judge-v1"
+
+    SUPERSEDE_CUES = ("outdated", "deprecated", "superseded", "old version", "no longer", "replaced")
+    CONFLICT_CUES = ("however", "but actually", "contradicts", "wrong", "incorrect", "never", "not true")
+
+    def __init__(self, seed: int = 0) -> None:
+        self.seed = seed
+        self.calls = 0  # counts judge invocations (assert == 1 per rerank in tests)
+
+    def judge(
+        self,
+        state: dict[str, Any],
+        questions: dict[str, dict[str, object]],
+        query: str,
+        candidates: list[Candidate],
+    ) -> tuple[JudgeResult, dict[str, int]]:
+        self.calls += 1
+        q_toks = _tokens(query)
+        answers = JudgeResult()
+        # Recency order for superseded reasoning: later retrieval_rank == newer.
+        order = {c.id: (c.retrieval_rank if c.retrieval_rank is not None else 0) for c in candidates}
+        newest = max(order.values()) if order else 0
+        by_id = {c.id: c for c in candidates}
+        for key in questions:
+            kind, _, cid = key.partition("__")
+            cand = by_id[cid]
+            c_toks = _tokens(cand.text)
+            ov = _overlap(q_toks, c_toks)
+            low = cand.text.lower()
+            if kind == "rel":
+                score = min(2.0, ov * 6.0)
+                conf = 0.55 + min(0.4, ov * 2.0)
+                answers[key] = {"score": score, "confidence": conf}
+            elif kind == "util":
+                score = min(2.0, ov * 5.0 + (0.4 if len(cand.text) > 80 else 0.0))
+                conf = 0.55 + min(0.4, ov * 2.0)
+                answers[key] = {"score": score, "confidence": conf}
+            elif kind == "sup":
+                cue = 0.75 if any(cue in low for cue in self.SUPERSEDE_CUES) else 0.0
+                age = 0.0 if order[cid] >= newest else 0.25
+                answers[key] = {"noul": min(1.0, cue + age)}
+            elif kind == "con":
+                cue = 0.8 if any(cue in low for cue in self.CONFLICT_CUES) else 0.05
+                answers[key] = {"noul": cue}
+        usage = {"input_tokens": sum(len(c.text) // 4 for c in candidates) + len(query) // 4, "output_tokens": 0}
+        return answers, usage
+
+
+class LiveJevJudge:
+    """Real Jev backend via the official ``typesafe-sdk`` (one call per rerank)."""
+
+    def __init__(
+        self,
+        model: str = "jev-latest",
+        api_key: str | None = None,
+        base_url: str | None = None,
+        timeout: float = 30.0,
+        max_retries: int = 4,
+    ) -> None:
+        try:
+            from typesafe_sdk import Noul, NoulCriteria, RetryPolicy, Score, TypeSafeClient
+        except ImportError as exc:
+            raise RuntimeError("typesafe-sdk is required for LiveJevJudge: pip install typesafe-sdk") from exc
+        key = api_key or os.environ.get("TYPESAFE_API_KEY")
+        if not key:
+            raise RuntimeError("TYPESAFE_API_KEY is not set; cannot create LiveJevJudge")
+        # Mandatory backoff: exponential + jitter on 429/5xx (incl. 529 overload),
+        # honoring Retry-After. TypeSafe is under heavy load; never hammer it.
+        retry = RetryPolicy(
+            max_retries=max_retries,
+            backoff_initial=0.5,
+            backoff_max=8.0,
+            backoff_jitter=0.25,
+            http_statuses={408, 429, 529, 500, 502, 503, 504},
+            respect_retry_after=True,
+        )
+        self._client = TypeSafeClient(api_key=key, base_url=base_url, timeout=timeout, retry=retry)
+        self._Noul = Noul
+        self._NoulCriteria = NoulCriteria
+        self._Score = Score
+        self._model = model
+        self.calls = 0
+
+    @property
+    def model_name(self) -> str:
+        return self._model
+
+    def _to_sdk_questions(self, questions: dict[str, dict[str, object]]) -> dict[str, Any]:
+        sdk_q: dict[str, Any] = {}
+        for key, q in questions.items():
+            if q["type"] == "score":
+                raw_levels = q.get("criteria")
+                levels = [str(x) for x in raw_levels] if isinstance(raw_levels, list) else []
+                sdk_q[key] = self._Score(instructions=str(q["instructions"]), criteria=levels)
+            else:
+                raw_crit = q.get("criteria")
+                crit = dict(raw_crit) if isinstance(raw_crit, dict) else {}
+                sdk_q[key] = self._Noul(
+                    instructions=str(q["instructions"]),
+                    criteria=self._NoulCriteria(true=crit.get("true"), false=crit.get("false")),
+                )
+        return sdk_q
+
+    def judge(
+        self,
+        state: dict[str, Any],
+        questions: dict[str, dict[str, object]],
+        query: str,
+        candidates: list[Candidate],
+    ) -> tuple[JudgeResult, dict[str, int]]:
+        self.calls += 1
+        response = self._client.system_one(
+            state=state,
+            questions=self._to_sdk_questions(questions),
+            model=self._model,
+        )
+        answers = JudgeResult()
+        for key, q in questions.items():
+            ans: Any = response.answers[key]
+            if q["type"] == "noul":
+                answers[key] = {"noul": float(ans.noul)}
+            else:
+                answers[key] = {"score": float(ans.score), "confidence": float(ans.confidence)}
+        usage = {
+            "input_tokens": int(response.usage.input_tokens or 0),
+            "output_tokens": int(response.usage.output_tokens or 0),
+        }
+        return answers, usage

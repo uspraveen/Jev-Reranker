@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jev-reranker"
+version = "0.1.0"
+description = "Decision-aware, calibrated context-selection engine for AI agents, powered by TypeSafe Jev. One Jev call per rerank; deterministic Python policy makes the ranking."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Praveen Raj Uma Maheswari Shyam Sundar" }]
+keywords = ["reranker", "rag", "memory", "typesafe", "jev", "agents"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Typing :: Typed",
+]
+dependencies = [
+  "typesafe-sdk>=0.5.7",
+  "pydantic>=2.0",
+  "httpx>=0.27",
+  "tenacity>=8.0",
+]
+
+[project.optional-dependencies]
+integrations = ["langchain-core>=0.3", "llama-index-core>=0.10", "qdrant-client>=1.9"]
+eval = ["datasets>=2.0", "numpy>=1.24"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4", "mypy>=1.10", "numpy>=1.24"]
+
+[project.urls]
+Homepage = "https://github.com/uspraveen/Jev-Reranker"
+Issues = "https://github.com/uspraveen/Jev-Reranker/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jev_reranker"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
