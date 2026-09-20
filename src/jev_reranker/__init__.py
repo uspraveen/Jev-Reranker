@@ -2,39 +2,55 @@
 
 Jev (TypeSafe System One model) makes judgments; deterministic Python policy
 makes the ranking. Exactly ONE ``/v1/systemone`` call per rerank/select —
-all candidates x all decision heads are batched into a single request.
+all candidates x all active heads are batched into a single request.
 
-Three modes: ``relevance`` (classic rerank), ``memory`` (agent memory
-triage with superseded/conflict detection), ``context`` (token-budget
-selection maximizing context value per token).
+Behavioral modes: ``relevance`` (relevance head only), ``memory`` (all four
+heads with superseded/conflict detection), ``context`` (memory heads plus
+token-budget selection and embedding-based near-duplicate suppression).
 """
 
 from jev_reranker.client import JevClient
+from jev_reranker.dedup import embed, similarity, suppress_near_duplicates
+from jev_reranker.judges import AsyncJudge, AsyncLiveJevJudge, Judge, LiveJevJudge, OfflineJudge
 from jev_reranker.models import (
     Candidate,
     ContextSelection,
+    HeadJudgments,
     Label,
     MemoryItem,
     PolicyConfig,
+    RankedDocument,
     RankedItem,
     RerankResult,
+    SelectionResult,
 )
 from jev_reranker.policy import POLICY_VERSION, QUESTION_SCHEMA_VERSION, apply_policy
 from jev_reranker.reranker import JevReranker
 
 __all__ = [
+    "AsyncJudge",
+    "AsyncLiveJevJudge",
     "Candidate",
     "ContextSelection",
+    "HeadJudgments",
     "JevClient",
     "JevReranker",
+    "Judge",
     "Label",
+    "LiveJevJudge",
     "MemoryItem",
+    "OfflineJudge",
     "POLICY_VERSION",
     "QUESTION_SCHEMA_VERSION",
     "PolicyConfig",
+    "RankedDocument",
     "RankedItem",
     "RerankResult",
+    "SelectionResult",
     "apply_policy",
+    "embed",
+    "similarity",
+    "suppress_near_duplicates",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

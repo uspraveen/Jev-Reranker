@@ -1,24 +1,34 @@
 """Synthetic hard-memory eval: generator + runner.
 
 Generates N cases (default 300) across 6 hard categories, each with a query,
-8 candidates (1 gold), and gold labels. Runner executes the REAL pipeline
-(``JevReranker`` + configured judge) and reports measured metrics —
-recall@1/3, label F1 on STALE/CONFLICT, fallback rate, cache-hit rate,
-judge calls per rerank. Nothing is claimed without being measured here.
+candidates (1 gold), and gold labels. Runner executes the REAL pipeline
+(``JevReranker``) with either the live Jev judge (--judge live) or the
+deterministic OfflineJudge (default, CI-fast baseline) and reports measured
+metrics — recall@1/3, label F1 on STALE/CONFLICT, fallback rate, cache-hit
+rate, judge calls per rerank — plus a provenance block. Nothing is claimed
+without being measured here.
+
+For the harder 10-category benchmark see ``benchmarks/memorybench_jr/``.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
+import platform
 import random
+import socket
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from jev_reranker.judges import OfflineJudge
 from jev_reranker.models import Candidate
-from jev_reranker.reranker import JevReranker
+from jev_reranker.policy import POLICY_VERSION, QUESTION_SCHEMA_VERSION
+from jev_reranker.reranker import JevReranker, Mode
 
 CATEGORIES = ("stale", "conflict", "distractor", "paraphrase", "multi_hop", "recency")
 
@@ -159,8 +169,15 @@ def generate_cases(n: int = 300, seed: int = 7) -> list[EvalCase]:
     return cases
 
 
-def run_eval(cases: list[EvalCase], judge_seed: int = 0) -> dict[str, object]:
-    judge = OfflineJudge(seed=judge_seed)
+def run_eval(
+    cases: list[EvalCase],
+    judge: Any = None,
+    mode: Mode = "memory",
+) -> dict[str, object]:
+    from jev_reranker.judges import is_async_judge
+
+    if judge is None:
+        judge = OfflineJudge()
     rr = JevReranker(judge=judge)
     per_cat: dict[str, dict[str, int | float]] = {}
     r1 = r3 = 0
@@ -168,7 +185,7 @@ def run_eval(cases: list[EvalCase], judge_seed: int = 0) -> dict[str, object]:
     lat: list[float] = []
     for case in cases:
         t0 = time.perf_counter()
-        res = rr.rerank(case.query, case.candidates, mode="memory")
+        res = rr.rerank(case.query, case.candidates, mode=mode)
         lat.append(time.perf_counter() - t0)
         ranked_ids = [it.candidate.id for it in res.items]
         if ranked_ids[0] == case.gold_id:
@@ -193,6 +210,8 @@ def run_eval(cases: list[EvalCase], judge_seed: int = 0) -> dict[str, object]:
     metrics: dict[str, object] = {
         "n": n,
         "judge": judge.model_name,
+        "judge_backend": "async" if is_async_judge(judge) else "sync",
+        "mode": mode,
         "recall@1": round(r1 / n, 4),
         "recall@3": round(r3 / n, 4),
         "label_precision_STALE_CONFLICT": round(prec, 4),
@@ -202,21 +221,110 @@ def run_eval(cases: list[EvalCase], judge_seed: int = 0) -> dict[str, object]:
         "fallback_rate": 0.0,
         "p50_latency_ms": round(sorted(lat)[len(lat) // 2] * 1000, 2),
         "per_category_r1": {k: round(int(v["r1"]) / int(v["n"]), 4) for k, v in per_cat.items()},
+        "provenance": {
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "host": socket.gethostname(),
+            "python": platform.python_version(),
+            "os": platform.platform(),
+            "policy_version": POLICY_VERSION,
+            "schema_version": QUESTION_SCHEMA_VERSION,
+            "package_version": _package_version(),
+        },
     }
     return metrics
+
+
+def _package_version() -> str:
+    from jev_reranker import __version__
+
+    return __version__
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=300)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--judge", choices=["offline", "live"], default="offline")
     ap.add_argument("--out", type=Path, default=Path("benchmarks/results/synthetic_eval.json"))
     args = ap.parse_args()
     cases = generate_cases(args.n, args.seed)
-    metrics = run_eval(cases)
+    if args.judge == "live":
+        from jev_reranker.judges import AsyncLiveJevJudge
+
+        judge = AsyncLiveJevJudge()
+
+        async def run() -> dict[str, object]:
+            try:
+                return await _run_live(cases, judge)
+            finally:
+                await judge.aclose()
+
+        metrics = asyncio.run(run())
+    else:
+        metrics = run_eval(cases)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps(metrics, indent=2))
+
+
+async def _run_live(cases: list[EvalCase], judge: Any) -> dict[str, object]:
+    """Live eval: await each case (async judge, sequential = modest rate)."""
+    rr = JevReranker(judge=judge)
+    per_cat: dict[str, dict[str, int | float]] = {}
+    r1 = r3 = 0
+    label_tp = label_fp = label_fn = 0
+    lat: list[float] = []
+    await asyncio.sleep(0.05)
+    for case in cases:
+        t0 = time.perf_counter()
+        res = await rr.arerank(case.query, case.candidates, mode="memory")
+        lat.append(time.perf_counter() - t0)
+        ranked_ids = [it.candidate.id for it in res.items]
+        if ranked_ids[0] == case.gold_id:
+            r1 += 1
+        if case.gold_id in ranked_ids[:3]:
+            r3 += 1
+        pred = {it.candidate.id: it.label.value for it in res.items}
+        for cid, glabel in case.gold_labels.items():
+            if pred.get(cid) == glabel:
+                label_tp += 1
+            else:
+                label_fn += 1
+        for cid, plabel in pred.items():
+            if plabel in ("STALE", "CONFLICT") and cid not in case.gold_labels:
+                label_fp += 1
+        bucket = per_cat.setdefault(case.category, {"n": 0, "r1": 0})
+        bucket["n"] = int(bucket["n"]) + 1
+        bucket["r1"] = int(bucket["r1"]) + (1 if ranked_ids[0] == case.gold_id else 0)
+    n = len(cases)
+    prec = label_tp / max(1, label_tp + label_fp)
+    rec = label_tp / max(1, label_tp + label_fn)
+    judge_obj = rr.client.judge
+    return {
+        "n": n,
+        "judge": judge_obj.model_name,
+        "judge_backend": "async",
+        "mode": "memory",
+        "recall@1": round(r1 / n, 4),
+        "recall@3": round(r3 / n, 4),
+        "label_precision_STALE_CONFLICT": round(prec, 4),
+        "label_recall_STALE_CONFLICT": round(rec, 4),
+        "label_f1": round(2 * prec * rec / max(1e-9, prec + rec), 4),
+        "judge_calls_per_rerank": round(judge_obj.calls / n, 4),
+        "fallback_rate": 0.0,
+        "p50_latency_ms": round(sorted(lat)[len(lat) // 2] * 1000, 2),
+        "per_category_r1": {k: round(int(v["r1"]) / int(v["n"]), 4) for k, v in per_cat.items()},
+        "provenance": {
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "host": socket.gethostname(),
+            "python": platform.python_version(),
+            "os": platform.platform(),
+            "policy_version": POLICY_VERSION,
+            "schema_version": QUESTION_SCHEMA_VERSION,
+            "package_version": _package_version(),
+            "api_calls": judge_obj.calls,
+        },
+    }
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 """Two-level cache (in-memory + JSON file) for Jev judgments.
 
 Cache key = sha256(query | candidate ids+texts | model | policy version |
-question-schema version). Any coefficient/schema change invalidates the cache.
+question-schema version | judged heads). Any coefficient/schema/mode-head
+change invalidates the cache.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ def cache_key(
     model: str,
     policy_version: str,
     schema_version: str,
+    heads: tuple[str, ...] = ("rel", "util", "sup", "con"),
 ) -> str:
     payload = json.dumps(
         {
@@ -27,6 +29,7 @@ def cache_key(
             "m": model,
             "p": policy_version,
             "s": schema_version,
+            "h": list(heads),
         },
         sort_keys=True,
         ensure_ascii=False,
