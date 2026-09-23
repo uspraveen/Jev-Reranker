@@ -1,0 +1,37 @@
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  96%|█████████▌| 298/310 [00:00<00:00, 2978.26it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 3014.62it/s]
+[scifact] qwen3-reranker-0.6b: 25/200 (22s)
+[scifact] qwen3-reranker-0.6b: 50/200 (28s)
+[scifact] qwen3-reranker-0.6b: 75/200 (33s)
+[scifact] qwen3-reranker-0.6b: 100/200 (39s)
+[scifact] qwen3-reranker-0.6b: 125/200 (45s)
+[scifact] qwen3-reranker-0.6b: 150/200 (51s)
+[scifact] qwen3-reranker-0.6b: 175/200 (56s)
+[scifact] qwen3-reranker-0.6b: 200/200 (62s)
+[scifact] qwen3-reranker-0.6b: ndcg@10=0.7485 errors=0
+[nfcorpus] corpus=3633 sampled_queries=200
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  63%|██████▎   | 195/310 [00:00<00:00, 1933.49it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2339.58it/s]
+[nfcorpus] qwen3-reranker-0.6b: 25/200 (7s)
+[nfcorpus] qwen3-reranker-0.6b: 50/200 (13s)
+[nfcorpus] qwen3-reranker-0.6b: 75/200 (19s)
+[nfcorpus] qwen3-reranker-0.6b: 100/200 (25s)
+[nfcorpus] qwen3-reranker-0.6b: 125/200 (31s)
+[nfcorpus] qwen3-reranker-0.6b: 150/200 (37s)
+[nfcorpus] qwen3-reranker-0.6b: 175/200 (42s)
+[nfcorpus] qwen3-reranker-0.6b: 200/200 (48s)
+[nfcorpus] qwen3-reranker-0.6b: ndcg@10=0.333 errors=0
+[fiqa] corpus=57638 sampled_queries=200
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  75%|███████▍  | 232/310 [00:00<00:00, 2305.03it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2527.72it/s]
+[fiqa] qwen3-reranker-0.6b: 25/200 (7s)
+[fiqa] qwen3-reranker-0.6b: 50/200 (12s)
+[fiqa] qwen3-reranker-0.6b: 75/200 (18s)
+[fiqa] qwen3-reranker-0.6b: 100/200 (24s)
+[fiqa] qwen3-reranker-0.6b: 125/200 (29s)
+[fiqa] qwen3-reranker-0.6b: 150/200 (35s)
+[fiqa] qwen3-reranker-0.6b: 175/200 (41s)
+[fiqa] qwen3-reranker-0.6b: 200/200 (46s)
+[fiqa] qwen3-reranker-0.6b: ndcg@10=0.3801 errors=0
+=== DONE ===

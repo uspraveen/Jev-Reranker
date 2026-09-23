@@ -24,15 +24,15 @@ committed next to this file (`<dataset>__<system>.jsonl`).
 
 ## NDCG@10 (n=200 per dataset)
 
-| dataset | BM25 (floor) | **Jev-Reranker** | Cohere rerank-v4.0-pro |
-|---|---|---|---|
-| scifact | 0.6788 | **0.7841** | 0.7728 |
-| nfcorpus | 0.3019 | **0.3426** | 0.3346 |
-| fiqa | 0.2485 | 0.4069 | **0.4198** |
-| **3-set average** | 0.4097 | **0.5112** | 0.5091 |
+| dataset | BM25 (floor) | **Jev-Reranker** | Cohere rerank-v4.0-pro | Qwen3-Reranker-0.6B | BGE-reranker-v2-m3 |
+|---|---|---|---|---|---|
+| scifact | 0.6788 | **0.7841** | 0.7728 | 0.7485 | 0.7328 |
+| nfcorpus | 0.3019 | **0.3426** | 0.3346 | 0.3330 | 0.3120 |
+| fiqa | 0.2485 | 0.4069 | **0.4198** | 0.3801 | 0.3724 |
+| **3-set average** | 0.4097 | **0.5112** | 0.5091 | 0.4872 | 0.4724 |
 
-Jev wins 2 of 3 datasets and the average; Cohere's flagship wins fiqa.
-With n=200 per dataset, single-digit-millisecond-scale differences are
+Jev wins 2 of 3 datasets and the average; Cohere's flagship wins fiqa; the
+open-weights pair trails both. With n=200 per dataset, small differences are
 within subsample noise — the honest reading is **parity with the flagship
 on relevance ranking, from a general-purpose decision model asked explicit
 questions, zero-shot** (no relevance-training exposure), at p50 ≈ 0.2 s per
@@ -41,6 +41,24 @@ query (30 candidates, one API call).
 A score-tie diagnostic (ties broken by policy-value order and by BM25 order)
 changed nothing (±0.0000 NDCG on all datasets): Jev's Score answers are
 quasi-continuous (e.g. 2.8/3), so tie-handling is not a factor here.
+
+## Open-weights GPU lanes (2026-09-23, added after the hosted run)
+
+Ran on a shared university GPU node (NVIDIA L40S 46 GB, CUDA 13, torch
+2.14.0+cu130), same protocol, same seeded query subsets and candidate
+lists. Model weights cached under the project dir; node torn down after
+collection.
+
+- `Qwen/Qwen3-Reranker-0.6B` (Apache-2.0): causal-LM reranker scored as
+  P(yes)/(P(yes)+P(no)) at the last token, fp16, batch 16, max_length 512
+  (same truncation as the BGE lane). p50 ≈ 232 ms/query on the L40S.
+- `BAAI/bge-reranker-v2-m3` (MIT): sequence-classification cross-encoder,
+  default precision, batch 32, max_length 512. This supersedes the CPU
+  llama.cpp attempt below — same model family, now actually measured.
+- Latency caveat: GPU lanes were measured on the GPU node itself; Jev from
+  the benchmark sandbox; Cohere throttled by trial pacing. Latencies are
+  NOT directly comparable across vantages — NDCG numbers are (same
+  candidates, same qrels).
 
 ## Latency & cost (context, not a head-to-head)
 
@@ -57,13 +75,11 @@ quasi-continuous (e.g. 2.8/3), so tie-handling is not a factor here.
   exhausted during setup; every subsequent request 429s ("add a payment
   method"), including isolated single calls from separate IPs. Rows from
   the attempt are committed as error JSONLs. Runnable after adding billing.
-- **Open-weights `bge-reranker-v2-m3` (GGUF via llama.cpp)**: llama.cpp was
-  built from source on the Alpine/musl sandbox (no torch wheels there),
-  the Q8_0 GGUF served via `llama-server --reranking`, and the endpoint
-  smoke-validated (correct ordering on a toy pair). Measured cost on the
-  3-vCPU CPU-only sandbox: **~434 s per query** (one full row, committed)
-  → the 600-query pass would take ~70 h. Reported as measured-infeasible
-  on this hardware, not skipped silently.
+- **Open-weights `bge-reranker-v2-m3` (GGUF via llama.cpp, CPU)**: llama.cpp
+  was built from source on the Alpine/musl sandbox (no torch wheels there)
+  and the endpoint smoke-validated, but measured **~434 s per query** on the
+  3-vCPU CPU-only sandbox → the 600-query pass would take ~70 h. Superseded
+  by the GPU lane above; the CPU attempt is kept for the record.
 
 ## Provenance & reproduction
 

@@ -1,0 +1,36 @@
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]Loading weights: 100%|██████████| 393/393 [00:00<00:00, 8136.04it/s]
+[scifact] bge-reranker-base: 25/200 (23s)
+[scifact] bge-reranker-base: 50/200 (32s)
+[scifact] bge-reranker-base: 75/200 (41s)
+[scifact] bge-reranker-base: 100/200 (49s)
+[scifact] bge-reranker-base: 125/200 (58s)
+[scifact] bge-reranker-base: 150/200 (67s)
+[scifact] bge-reranker-base: 175/200 (76s)
+[scifact] bge-reranker-base: 200/200 (85s)
+[scifact] bge-reranker-base: ndcg@10=0.7328 errors=0
+[nfcorpus] corpus=3633 sampled_queries=200
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]Loading weights: 100%|██████████| 393/393 [00:00<00:00, 8179.89it/s]
+[nfcorpus] bge-reranker-base: 25/200 (11s)
+[nfcorpus] bge-reranker-base: 50/200 (20s)
+[nfcorpus] bge-reranker-base: 75/200 (30s)
+[nfcorpus] bge-reranker-base: 100/200 (39s)
+[nfcorpus] bge-reranker-base: 125/200 (48s)
+[nfcorpus] bge-reranker-base: 150/200 (57s)
+[nfcorpus] bge-reranker-base: 175/200 (66s)
+[nfcorpus] bge-reranker-base: 200/200 (75s)
+[nfcorpus] bge-reranker-base: ndcg@10=0.312 errors=0
+[fiqa] corpus=57638 sampled_queries=200
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]Loading weights: 100%|██████████| 393/393 [00:00<00:00, 8220.89it/s]
+[fiqa] bge-reranker-base: 25/200 (11s)
+[fiqa] bge-reranker-base: 50/200 (19s)
+[fiqa] bge-reranker-base: 75/200 (28s)
+[fiqa] bge-reranker-base: 100/200 (36s)
+[fiqa] bge-reranker-base: 125/200 (45s)
+[fiqa] bge-reranker-base: 150/200 (53s)
+[fiqa] bge-reranker-base: 175/200 (62s)
+[fiqa] bge-reranker-base: 200/200 (71s)
+[fiqa] bge-reranker-base: ndcg@10=0.3724 errors=0
+=== DONE ===

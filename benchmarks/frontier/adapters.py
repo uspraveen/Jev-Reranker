@@ -188,7 +188,7 @@ class CohereAdapter(BaseAdapter):
 
 
 class CrossEncoderAdapter(BaseAdapter):
-    """Open-weights cross-encoder, CPU, raw logits as scores (plain transformers)."""
+    """Open-weights cross-encoder, GPU if available, raw logits as scores."""
 
     name = "cross-encoder"
 
@@ -197,8 +197,9 @@ class CrossEncoderAdapter(BaseAdapter):
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.torch = torch
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(self.device)
         self.model.eval()
         self.model_name = model_name
         self.name = model_name
@@ -219,7 +220,7 @@ class CrossEncoderAdapter(BaseAdapter):
                     truncation=True,
                     max_length=self.max_length,
                     return_tensors="pt",
-                )
+                ).to(self.device)
                 logits = self.model(**enc).logits[:, 0]
                 all_scores.extend(float(s) for s in logits)
         self.pairs += len(texts)
@@ -283,9 +284,78 @@ def build_adapters(
         elif s == "cohere":
             out.append(CohereAdapter(keys["COHERE_API_KEY"], cohere_model, cohere_min_interval_s))
         elif s == "bge-reranker-base":
-            out.append(CrossEncoderAdapter(ce_model))
+            import os
+
+            out.append(CrossEncoderAdapter(os.environ.get("CE_MODEL", ce_model)))
         elif s == "bge-reranker-v2-m3-gguf":
             out.append(LlamaCppRerankAdapter("bge-reranker-v2-m3"))
+        elif s == "qwen3-reranker-0.6b":
+            out.append(Qwen3RerankAdapter("Qwen/Qwen3-Reranker-0.6B"))
         else:
             raise ValueError(f"unknown system {s!r}")
     return out
+
+
+class Qwen3RerankAdapter(BaseAdapter):
+    """Qwen3-Reranker: causal LM scored via P(yes)/(P(yes)+P(no)) at the last token.
+
+    Reference format from the Qwen3-Reranker model card; left padding so the
+    final position is the real last token. max_length 512 to match the other
+    lanes' truncation.
+    """
+
+    INSTRUCTION = "Given a query, retrieve relevant documents that answer the query"
+    PREFIX = (
+        '<|im_start|>system\nJudge whether the Document meets the requirements based on '
+        'the Query and the Instruct provided. Note that the answer can only be "yes" or "no".'
+        '<|im_end|>\n<|im_start|>user\n'
+    )
+    SUFFIX = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'
+
+    def __init__(self, model_name: str = "Qwen/Qwen3-Reranker-0.6B", batch_size: int = 16, max_length: int = 512) -> None:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        self.torch = torch
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16).to(self.device)
+        self.model.eval()
+        self.model_name = model_name
+        self.name = model_name.split("/")[-1]
+        self.batch_size = batch_size
+        self.max_length = max_length
+        self.token_true_id = self.tokenizer.convert_tokens_to_ids("yes")
+        self.token_false_id = self.tokenizer.convert_tokens_to_ids("no")
+        self.prefix_tokens = self.tokenizer.encode(self.PREFIX, add_special_tokens=False)
+        self.suffix_tokens = self.tokenizer.encode(self.SUFFIX, add_special_tokens=False)
+        self.pairs = 0
+
+    def _format(self, query: str, doc: str) -> str:
+        return f"<Instruct>: {self.INSTRUCTION}\n<Query>: {query}\n<Document>: {doc}"
+
+    def rerank(self, query: str, doc_ids: list[str], texts: list[str]) -> tuple[Scores, CallMeta]:
+        t0 = time.perf_counter()
+        scores: dict[str, float] = {}
+        with self.torch.no_grad():
+            for i in range(0, len(texts), self.batch_size):
+                chunk = [self._format(query, t) for t in texts[i : i + self.batch_size]]
+                inputs = self.tokenizer(
+                    chunk,
+                    padding=False,
+                    truncation="longest_first",
+                    return_attention_mask=False,
+                    max_length=self.max_length - len(self.prefix_tokens) - len(self.suffix_tokens),
+                )
+                inputs["input_ids"] = [self.prefix_tokens + ids + self.suffix_tokens for ids in inputs["input_ids"]]
+                batch = self.tokenizer.pad(inputs, padding=True, return_tensors="pt").to(self.device)
+                logits = self.model(**batch).logits[:, -1, :]
+                stacked = self.torch.stack([logits[:, self.token_false_id], logits[:, self.token_true_id]], dim=1)
+                probs = self.torch.nn.functional.log_softmax(stacked, dim=1)[:, 1].exp().tolist()
+                for d, s in zip(doc_ids[i : i + self.batch_size], probs, strict=True):
+                    scores[d] = float(s)
+        self.pairs += len(texts)
+        return Scores(scores), CallMeta(
+            latency_ms=round((time.perf_counter() - t0) * 1000, 2),
+            usage={"n_pairs": len(texts)},
+        )
