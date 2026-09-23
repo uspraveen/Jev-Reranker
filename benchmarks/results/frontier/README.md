@@ -1,10 +1,20 @@
 # Frontier comparison — BEIR mini-study (2026-09-23)
 
 Jev-Reranker (live `jev-latest`, relevance mode) vs Cohere's flagship reranker
-(`rerank-v4.0-pro`, trial key) vs a BM25 retrieval floor, on three BEIR
-datasets. Every system re-scored the **identical** BM25 top-30 candidate
-lists; NDCG@10 via `pytrec_eval` (trec gains). Full per-query rows are
-committed next to this file (`<dataset>__<system>.jsonl`).
+(`rerank-v4.0-pro`, trial key) vs open-weights rerankers vs a BM25 retrieval
+floor, on three BEIR datasets. Every system re-scored the **identical** BM25
+top-30 candidate lists; NDCG@10 via `pytrec_eval` (trec gains). Full
+per-query rows are committed next to this file (`<dataset>__<system>.jsonl`).
+
+![NDCG@10 by dataset](frontier_ndcg_by_dataset.png)
+
+![3-dataset average](frontier_average_ndcg.png)
+
+![Lift over BM25](frontier_lift_over_bm25.png)
+
+Charts are regenerated from the committed per-query rows by
+`python -m benchmarks.frontier.make_visuals` (also writes
+`frontier_summary.json`).
 
 ## Protocol
 

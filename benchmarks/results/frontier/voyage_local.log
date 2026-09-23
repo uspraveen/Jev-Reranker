@@ -16,3 +16,5 @@
 [scifact] voyage-2.5: eval unavailable here (ModuleNotFoundError)
 [scifact] voyage-2.5: ndcg@10=None errors=222
 [nfcorpus] corpus=3633 sampled_queries=200
+[nfcorpus] voyage-2.5: 25/200 (2620s)
+[nfcorpus] voyage-2.5: 50/200 (5245s)

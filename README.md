@@ -99,6 +99,8 @@ rerankers on every dataset. Voyage (trial quota exhausted) is documented as
 attempted-not-reported — full caveats, protocol, and reproduction steps in
 `benchmarks/results/frontier/README.md`.
 
+![Frontier comparison](benchmarks/results/frontier/frontier_ndcg_by_dataset.png)
+
 ## Generic use: any retrieval project
 
 The policy math is domain-agnostic; the *questions* encode what your domain
