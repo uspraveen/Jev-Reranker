@@ -1,0 +1,14 @@
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+[scifact] voyage-2.5: 25/200 (100s)
+[scifact] voyage-2.5: 50/200 (205s)
+[scifact] voyage-2.5: 75/200 (205s)
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+[scifact] voyage-2.5: 25/200 (25186s)
+[scifact] voyage-2.5: 50/200 (27935s)
+[scifact] voyage-2.5: 75/200 (30557s)
+[scifact] voyage-2.5: 100/200 (33191s)
+[scifact] voyage-2.5: 125/200 (35817s)
+[scifact] voyage-2.5: 150/200 (38463s)
+[scifact] voyage-2.5: 175/200 (

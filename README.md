@@ -80,6 +80,25 @@ More: `examples/quickstart.py`, `examples/memory_triage.py`,
 (LangChain compressor, LangGraph `memory_triage_node`, LlamaIndex
 postprocessor, Qdrant helper) live in `jev_reranker.integrations`.
 
+## Frontier comparison: Jev vs Cohere's flagship on BEIR (2026-09-23)
+
+Identical BM25 top-30 candidate lists re-scored by every system, NDCG@10,
+200 seeded queries per dataset (`benchmarks/results/frontier/`):
+
+| dataset | BM25 floor | **Jev-Reranker** | Cohere rerank-v4.0-pro |
+|---|---|---|---|
+| scifact | 0.679 | **0.784** | 0.773 |
+| nfcorpus | 0.302 | **0.343** | 0.335 |
+| fiqa | 0.249 | 0.407 | **0.420** |
+| average | 0.410 | **0.511** | 0.509 |
+
+A general-purpose decision model, zero-shot through explicit questions,
+matches Cohere's purpose-trained flagship (wins 2 of 3 datasets and the
+average) at p50 ≈ 0.2 s per query. Voyage (trial quota exhausted) and the
+open-weights BGE lane (CPU-measured ~434 s/query) are documented as
+attempted-not-reported — full caveats, protocol, and reproduction steps in
+`benchmarks/results/frontier/README.md`.
+
 ## Generic use: any retrieval project
 
 The policy math is domain-agnostic; the *questions* encode what your domain

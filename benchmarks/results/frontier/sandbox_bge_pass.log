@@ -1,0 +1,10 @@
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200

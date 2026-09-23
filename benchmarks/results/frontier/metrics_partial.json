@@ -1,0 +1,10 @@
+{
+  "scifact": {
+    "voyage-2.5": {
+      "errors": 222,
+      "latency_ms_p50": 0.0,
+      "latency_ms_p95": 0.0,
+      "usage_totals": {}
+    }
+  }
+}
