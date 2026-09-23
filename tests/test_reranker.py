@@ -208,3 +208,82 @@ def test_async_native_path_with_async_judge() -> None:
     assert calls == 1
     assert res.latency_ms is not None and res.latency_ms >= 0
     assert res.items[0].value > 0.5  # 0.55*1 + 0.45*1 = 1.0 with no penalties
+
+
+def test_relevance_score_on_items_and_documents() -> None:
+    rr, _ = _rr()
+    res = rr.rerank_texts("deploy payments?", ["deploy payments service now"], mode="memory")
+    top = res.items[0]
+    assert top.relevance_score == top.judgments.relevance / 3.0
+    assert 0.0 <= top.relevance_score <= 1.0
+    doc = res.documents[0]
+    assert doc.relevance_score == top.relevance_score
+
+
+def test_plain_strings_accepted_by_rerank_and_select() -> None:
+    """Drop-in ergonomics: list[str] is valid input, positional ids assigned."""
+    rr, judge = _rr()
+    res = rr.rerank("deploy payments?", ["deploy payments now", "lunch menu"], mode="memory")
+    assert [it.candidate.id for it in res.items] and judge.calls == 1
+    sel = rr.select("deploy payments?", ["deploy payments now", "lunch menu"], budget_tokens=100)
+    assert sel.total_tokens <= 100
+
+
+def test_sync_rerank_inside_running_loop() -> None:
+    """The old asyncio.run sync wrapper raised here; the worker-thread path must not."""
+    rr, _ = _rr()
+
+    async def inside_loop() -> None:
+        res = rr.rerank_texts("deploy payments?", ["deploy payments service"], mode="relevance")
+        assert res.items
+        sel = rr.select(
+            "deploy payments?",
+            [Candidate(id="a", text="deploy payments service", retrieval_rank=0)],
+            budget_tokens=100,
+        )
+        assert sel.selected
+
+    asyncio.run(inside_loop())
+
+
+def test_heads_override_narrows_question_set() -> None:
+    seen: dict[str, int] = {}
+
+    class CountingJudge(OfflineJudge):
+        def judge(self, state: Any, questions: Any, query: str, candidates: Any) -> tuple[JudgeResult, dict[str, int]]:
+            seen["n_questions"] = len(questions)
+            return super().judge(state, questions, query, candidates)
+
+    rr = JevReranker(judge=CountingJudge())
+    res = rr.rerank_texts("deploy payments?", ["deploy payments service"], mode="memory", heads=("rel",))
+    assert seen["n_questions"] == 1
+    assert res.items
+
+
+def test_custom_rubric_reaches_judge() -> None:
+    seen_instructions: list[str] = []
+
+    class RecordingJudge(OfflineJudge):
+        def judge(self, state: Any, questions: Any, query: str, candidates: Any) -> tuple[JudgeResult, dict[str, int]]:
+            seen_instructions.extend(str(q["instructions"]) for q in questions.values())
+            return super().judge(state, questions, query, candidates)
+
+    rr = JevReranker(judge=RecordingJudge(), rubric="code_search")
+    rr.rerank_texts("payment retry logic", ["def retry_payment(): ..."], mode="memory")
+    assert any("code search query" in ins for ins in seen_instructions)
+
+
+def test_cohere_compat_shape() -> None:
+    from jev_reranker.integrations.cohere_compat import CohereCompatReranker
+
+    docs = ["lunch menu pasta", "payments deploy runbook kubectl", "deploy payments to prod"]
+    adapter = CohereCompatReranker(reranker=JevReranker(judge=OfflineJudge()))
+    body = adapter.rerank("how do I deploy payments?", docs, top_n=2)
+    assert len(body["results"]) == 2
+    scores = [r["relevance_score"] for r in body["results"]]
+    assert scores == sorted(scores, reverse=True)
+    for r in body["results"]:
+        assert r["document"]["text"] == docs[r["index"]]
+        assert 0.0 <= r["relevance_score"] <= 1.0
+    sel = adapter.select("deploy payments?", docs[:2], budget_tokens=100)
+    assert sel["total_tokens"] <= sel["budget_tokens"]

@@ -46,6 +46,7 @@ Two hard rules, enforced by the policy and covered by tests:
 ```bash
 pip install -e ".[dev]"          # tests, lint, types (+numpy for eval extras)
 pip install -e ".[integrations]" # langchain / llama-index / qdrant adapters
+pip install -e ".[server]"       # fastapi + uvicorn for the HTTP surface
 export TYPESAFE_API_KEY=...      # live Jev; without it, OfflineJudge is used
 ```
 
@@ -74,10 +75,76 @@ print(sel.total_tokens, "of", sel.budget_tokens)
 ```
 
 More: `examples/quickstart.py`, `examples/memory_triage.py`,
-`examples/context_budget.py`, `demo/arena.py --cli`
-(or `streamlit run demo/arena.py`). Framework adapters
+`examples/context_budget.py`, `examples/generic_retrieval.py`,
+`demo/arena.py --cli` (or `streamlit run demo/arena.py`). Framework adapters
 (LangChain compressor, LangGraph `memory_triage_node`, LlamaIndex
 postprocessor, Qdrant helper) live in `jev_reranker.integrations`.
+
+## Generic use: any retrieval project
+
+The policy math is domain-agnostic; the *questions* encode what your domain
+means by relevant/usable/superseded/conflicting, so they are configurable:
+
+```python
+from jev_reranker import JevReranker, Rubric, ScoreHeadRubric, NoulHeadRubric
+
+rr = JevReranker(rubric="code_search")            # built-in preset
+# ...or fully custom:
+legal = Rubric(
+    name="legal",
+    rel=ScoreHeadRubric(instructions="Is candidate [cid] controlling authority for the query?",
+                        criteria=["off point", "background", "persuasive", "controlling"]),
+    util=ScoreHeadRubric(instructions="How actionable is candidate [cid]?",
+                         criteria=["no holdings", "background only", "on-point dicta", "directly on point"]),
+    sup=NoulHeadRubric(instructions="Was candidate [cid] overruled?",
+                       criteria={"true": "Newer authority controls", "false": "Still good law"}),
+    con=NoulHeadRubric(instructions="Does candidate [cid] conflict?",
+                       criteria={"true": "Contradicted elsewhere", "false": "Consistent"}),
+)
+rr = JevReranker(rubric=legal)
+```
+
+Built-ins: `agent_memory` (default — the original benchmark questions,
+byte-identical), `generic_retrieval` (documents/RAG), `code_search`. Rubric
+identity is part of the judgment cache key — swapping rubrics never serves
+stale judgments.
+
+**Ecosystem-standard outputs.** Every ranked item carries
+`relevance_score ∈ [0,1]` (raw relevance head / 3 — comparable within one
+call, not ratio-scale), independent of the policy `value`. For hosted-API
+compatibility, `CohereCompatReranker` speaks the exact request/response shape
+the rerank market standardized on (`results: [{index, relevance_score,
+document}]`, positional `index`, Jev extras under `meta.jev`):
+
+```python
+from jev_reranker import CohereCompatReranker
+body = CohereCompatReranker(reranker=rr).rerank("query", ["doc one", "doc two"], top_n=2)
+```
+
+The same contract over HTTP — any language, any HTTP client:
+
+```bash
+pip install "jev-reranker[server]"
+uvicorn jev_reranker.server:app --port 8494
+# POST /rerank  {query, documents, top_n}     (Cohere shape)
+# POST /select  {query, documents, budget_tokens}
+# GET  /health  (reports which judge is serving — offline responses are
+#                never presented as Jev output)
+```
+
+**Ergonomics.** Sync `rerank`/`select` are safe to call from inside a running
+event loop (Jupyter, FastAPI handlers) — they no longer use `asyncio.run` on
+the hot path — and accept plain strings anywhere Candidates are expected
+(`rr.rerank("query", ["doc one", "doc two"])`). The `heads` argument narrows
+a call's question set (e.g. `rerank(..., mode="memory", heads=("rel",
+"sup"))`) — still one batched Jev call per rerank. `acompress_documents`
+mirrors the LangChain compressor async-first.
+
+Open for generic adoption (honest list): latency/cost at the 100-candidate
+cap is unmeasured live (measured numbers are at benchmark scale, 4-6
+candidates); documents are single-text (no title/multi-field or
+per-doc chunking yet); question rubrics are configurable but the *head set*
+(rel/util/sup/con) is fixed — new head types need code, not config.
 
 ## Measured results — MemoryBench-JR, live Jev
 
@@ -152,17 +219,17 @@ discrimination, which is why thresholds were never tuned to it.
 
 ## Other checks
 
-`pytest` 50 passed; `ruff check` clean; `mypy --strict` clean (15 source
-files) — re-verified on a fresh clone of `df64e32` (Python 3.12, 2026-09-22).
-Arena CLI verified on both samples (STALE + CONFLICT correctly flagged) and
-all three examples run (VM, 2026-09-19).
+`pytest` 64 passed; `ruff check` clean; `mypy --strict` clean (18 source
+files) — current tree, Python 3.12 (2026-09-22). Arena CLI verified on both
+samples (STALE + CONFLICT correctly flagged) and all three examples run
+(VM, 2026-09-19).
 
 ## Layout
 
 ```
-src/jev_reranker/  policy.py client.py judges.py models.py reranker.py
-                   cache.py dedup.py eval_synthetic.py longmemeval_slice.py
-                   integrations/ (langchain, langgraph, llamaindex, qdrant)
-tests/             policy / client / reranker / dedup / cache-schema / memorybench (50 tests)
+src/jev_reranker/  policy.py rubric.py client.py judges.py models.py reranker.py
+                   cache.py dedup.py eval_synthetic.py longmemeval_slice.py server.py
+                   integrations/ (langchain, langgraph, llamaindex, qdrant, cohere_compat)
+tests/             policy / client / reranker / rubric / dedup / cache-schema / memorybench / server (64 tests)
 examples/ demo/ benchmarks/memorybench_jr/ benchmarks/results/ scripts/run_benchmarks.py
 ```

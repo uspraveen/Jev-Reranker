@@ -11,6 +11,7 @@ token-budget selection and embedding-based near-duplicate suppression).
 
 from jev_reranker.client import JevClient
 from jev_reranker.dedup import embed, similarity, suppress_near_duplicates
+from jev_reranker.integrations.cohere_compat import CohereCompatReranker
 from jev_reranker.judges import AsyncJudge, AsyncLiveJevJudge, Judge, LiveJevJudge, OfflineJudge
 from jev_reranker.models import (
     Candidate,
@@ -26,11 +27,20 @@ from jev_reranker.models import (
 )
 from jev_reranker.policy import POLICY_VERSION, QUESTION_SCHEMA_VERSION, apply_policy
 from jev_reranker.reranker import JevReranker
+from jev_reranker.rubric import (
+    BUILTIN_RUBRICS,
+    NoulHeadRubric,
+    Rubric,
+    ScoreHeadRubric,
+    resolve_rubric,
+)
 
 __all__ = [
     "AsyncJudge",
     "AsyncLiveJevJudge",
+    "BUILTIN_RUBRICS",
     "Candidate",
+    "CohereCompatReranker",
     "ContextSelection",
     "HeadJudgments",
     "JevClient",
@@ -39,6 +49,7 @@ __all__ = [
     "Label",
     "LiveJevJudge",
     "MemoryItem",
+    "NoulHeadRubric",
     "OfflineJudge",
     "POLICY_VERSION",
     "QUESTION_SCHEMA_VERSION",
@@ -46,11 +57,14 @@ __all__ = [
     "RankedDocument",
     "RankedItem",
     "RerankResult",
+    "Rubric",
+    "ScoreHeadRubric",
     "SelectionResult",
     "apply_policy",
     "embed",
+    "resolve_rubric",
     "similarity",
     "suppress_near_duplicates",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

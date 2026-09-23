@@ -32,6 +32,7 @@ from jev_reranker.models import (
     TelemetryCallback,
 )
 from jev_reranker.policy import QUESTION_SCHEMA_VERSION, apply_policy, build_questions, heads_for_mode
+from jev_reranker.rubric import Rubric, resolve_rubric
 
 MAX_CANDIDATES = 100
 MAX_CANDIDATE_CHARS = 4000
@@ -78,6 +79,7 @@ class JevClient:
         max_candidates: int = MAX_CANDIDATES,
         input_token_limit: int = MAX_INPUT_TOKENS,
         on_event: TelemetryCallback | None = None,
+        rubric: str | Rubric | None = None,
     ) -> None:
         self.policy = policy or PolicyConfig()
         self.model = model
@@ -85,6 +87,7 @@ class JevClient:
         self.max_candidates = max_candidates
         self.input_token_limit = input_token_limit
         self.on_event = on_event
+        self.rubric = resolve_rubric(rubric)
         if judge is not None:
             self.judge = judge
             if not model or model == "jev-latest":
@@ -208,9 +211,14 @@ class JevClient:
         query: str,
         candidates: list[Candidate],
         mode: str = "memory",
+        heads: tuple[HeadName, ...] | None = None,
     ) -> tuple[list[RankedItem], dict[str, Any]]:
-        """Run ONE batched judgment + policy. Returns (items, meta)."""
-        heads = heads_for_mode(mode)
+        """Run ONE batched judgment + policy. Returns (items, meta).
+
+        ``heads`` overrides the mode's head set (e.g. ``("rel", "sup")``);
+        ``None`` keeps the mode default.
+        """
+        active_heads = heads if heads is not None else heads_for_mode(mode)
         request_id = f"jr_{uuid.uuid4().hex[:12]}"
         if not candidates:
             empty_meta = {"request_id": request_id, "cached": False, "fallback_used": False, "usage": {}}
@@ -222,13 +230,14 @@ class JevClient:
             self.model,
             self.policy.version,
             QUESTION_SCHEMA_VERSION,
-            heads,
+            active_heads,
+            self.rubric.id,
         )
         hit = self.cache.get(key)
         if hit is not None:
             self.cache_hits += 1
             judgments = {cid: HeadJudgments(**j) for cid, j in hit["judgments"].items()}
-            items = apply_policy(cands, judgments, self.policy, heads)
+            items = apply_policy(cands, judgments, self.policy, active_heads)
             self._emit({"event": "cache_hit", "request_id": request_id, "mode": mode})
             return items, {
                 "request_id": request_id,
@@ -239,7 +248,7 @@ class JevClient:
                 **notes,
             }
         state = self._state(query, cands)
-        questions = build_questions([c.id for c in cands], heads)
+        questions = build_questions([c.id for c in cands], active_heads, rubric=self.rubric)
         t0 = time.perf_counter()
         try:
             answers, usage = self.judge.judge(state, questions, query, cands)
@@ -255,10 +264,10 @@ class JevClient:
                 **notes,
             }
         latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-        judgments = self._parse(answers, cands, heads)
+        judgments = self._parse(answers, cands, active_heads)
         self.calls_made += 1
         self.cache.set(key, {"judgments": {cid: j.model_dump() for cid, j in judgments.items()}, "usage": usage})
-        items = apply_policy(cands, judgments, self.policy, heads)
+        items = apply_policy(cands, judgments, self.policy, active_heads)
         self._emit(
             {
                 "event": "judge_call",
@@ -285,18 +294,20 @@ class JevClient:
         query: str,
         candidates: list[Candidate],
         mode: str = "memory",
+        heads: tuple[HeadName, ...] | None = None,
     ) -> tuple[list[RankedItem], dict[str, Any]]:
         """Async twin of :meth:`judge_once`.
 
         Uses the judge's native async path when available (AsyncLiveJevJudge);
-        otherwise runs the sync judge in the default executor.
+        otherwise runs the sync judge in the default executor. ``heads``
+        overrides the mode's head set.
         """
         if not is_async_judge(self.judge):
             import asyncio
 
             loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(None, lambda: self.judge_once(query, candidates, mode))
-        heads = heads_for_mode(mode)
+            return await loop.run_in_executor(None, lambda: self.judge_once(query, candidates, mode, heads))
+        active_heads = heads if heads is not None else heads_for_mode(mode)
         request_id = f"jr_{uuid.uuid4().hex[:12]}"
         if not candidates:
             empty_meta = {"request_id": request_id, "cached": False, "fallback_used": False, "usage": {}}
@@ -308,13 +319,14 @@ class JevClient:
             self.model,
             self.policy.version,
             QUESTION_SCHEMA_VERSION,
-            heads,
+            active_heads,
+            self.rubric.id,
         )
         hit = self.cache.get(key)
         if hit is not None:
             self.cache_hits += 1
             judgments = {cid: HeadJudgments(**j) for cid, j in hit["judgments"].items()}
-            items = apply_policy(cands, judgments, self.policy, heads)
+            items = apply_policy(cands, judgments, self.policy, active_heads)
             self._emit({"event": "cache_hit", "request_id": request_id, "mode": mode})
             return items, {
                 "request_id": request_id,
@@ -325,7 +337,7 @@ class JevClient:
                 **notes,
             }
         state = self._state(query, cands)
-        questions = build_questions([c.id for c in cands], heads)
+        questions = build_questions([c.id for c in cands], active_heads, rubric=self.rubric)
         t0 = time.perf_counter()
         try:
             answers, usage = await self.judge.judge(state, questions, query, cands)
@@ -341,10 +353,10 @@ class JevClient:
                 **notes,
             }
         latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-        judgments = self._parse(answers, cands, heads)
+        judgments = self._parse(answers, cands, active_heads)
         self.calls_made += 1
         self.cache.set(key, {"judgments": {cid: j.model_dump() for cid, j in judgments.items()}, "usage": usage})
-        items = apply_policy(cands, judgments, self.policy, heads)
+        items = apply_policy(cands, judgments, self.policy, active_heads)
         self._emit(
             {
                 "event": "judge_call",

@@ -121,6 +121,16 @@ class RankedItem(BaseModel):
     rank: int = Field(description="0-based final rank")
 
     @property
+    def relevance_score(self) -> float:
+        """Ecosystem-standard 0..1 relevance (raw relevance head / 3).
+
+        Independent of the policy value: it does NOT mix in utility or
+        superseded/conflict penalties. Use for drop-in rerank comparisons;
+        use ``value`` for policy decisions.
+        """
+        return self.judgments.relevance / 3.0
+
+    @property
     def decisions(self) -> HeadJudgments:
         """Owner-section-9 name for the per-candidate head decisions."""
         return self.judgments
@@ -132,6 +142,7 @@ class RankedDocument(BaseModel):
     id: str
     text: str
     score: float = Field(description="Policy value of the document")
+    relevance_score: float = Field(description="Raw relevance head, normalized 0..1")
     label: Label
     rank: int
     decisions: HeadJudgments
@@ -191,6 +202,7 @@ class RerankResult(BaseModel):
                 id=it.candidate.id,
                 text=it.candidate.text,
                 score=it.value,
+                relevance_score=it.relevance_score,
                 label=it.label,
                 rank=it.rank,
                 decisions=it.judgments,

@@ -22,24 +22,17 @@ from jev_reranker.models import (
     PolicyConfig,
     RankedItem,
 )
+from jev_reranker.rubric import AGENT_MEMORY, Rubric, resolve_rubric
 
 POLICY_VERSION = "v2"
 QUESTION_SCHEMA_VERSION = "v2"
 
 # Question-schema: up to 4 heads per candidate, all asked in ONE
 # /v1/systemone call. Score heads use the owner's 0-3 rubric (4 levels).
-RELEVANCE_LEVELS = [
-    "irrelevant to the query",
-    "partially relevant background",
-    "mostly relevant, on-topic",
-    "directly answers the query",
-]
-UTILITY_LEVELS = [
-    "no actionable content",
-    "useful background only",
-    "mostly actionable",
-    "directly usable to act",
-]
+# The question texts themselves are domain-configurable (see rubric.py);
+# these aliases expose the default agent_memory criteria.
+RELEVANCE_LEVELS = list(AGENT_MEMORY.rel.criteria)
+UTILITY_LEVELS = list(AGENT_MEMORY.util.criteria)
 
 HEAD_KINDS: dict[str, str] = {"rel": "score", "util": "score", "sup": "noul", "con": "noul"}
 
@@ -52,44 +45,31 @@ def question_key(kind: str, candidate_id: str) -> str:
 def build_questions(
     candidate_ids: list[str],
     heads: tuple[HeadName, ...] = ("rel", "util", "sup", "con"),
+    rubric: str | Rubric | None = None,
 ) -> dict[str, dict[str, object]]:
-    """Build the (heads x N) question payload (JSON-serializable) for one batched call."""
+    """Build the (heads x N) question payload (JSON-serializable) for one batched call.
+
+    ``rubric`` selects the question texts: ``None`` -> the default
+    ``agent_memory`` preset, a preset name, or a custom :class:`Rubric`.
+    """
+    rb = resolve_rubric(rubric)
     questions: dict[str, dict[str, object]] = {}
     for cid in candidate_ids:
         for head in heads:
             key = question_key(head, cid)
-            if head == "rel":
+            spec = rb.head(head)
+            instructions = spec.instructions.replace("[cid]", f"[{cid}]")
+            if spec.kind == "score":
                 questions[key] = {
                     "type": "score",
-                    "instructions": f"How relevant is candidate [{cid}] to the query?",
-                    "criteria": RELEVANCE_LEVELS,
+                    "instructions": instructions,
+                    "criteria": list(spec.criteria),
                 }
-            elif head == "util":
-                questions[key] = {
-                    "type": "score",
-                    "instructions": f"How actionable/useful is candidate [{cid}] for acting on the query?",
-                    "criteria": UTILITY_LEVELS,
-                }
-            elif head == "sup":
+            else:
                 questions[key] = {
                     "type": "noul",
-                    "instructions": (
-                        f"Is the fact in candidate [{cid}] superseded — that is, replaced or invalidated "
-                        f"by newer information about the same fact (in the other candidates or the query)?"
-                    ),
-                    "criteria": {
-                        "true": "A newer piece of information replaces or invalidates this same fact",
-                        "false": "This fact still stands on its own (irrelevance alone does not make it superseded)",
-                    },
-                }
-            else:  # con
-                questions[key] = {
-                    "type": "noul",
-                    "instructions": f"Does candidate [{cid}] conflict with the query or the other candidates?",
-                    "criteria": {
-                        "true": "It asserts something contradicted elsewhere",
-                        "false": "It is consistent with the rest",
-                    },
+                    "instructions": instructions,
+                    "criteria": dict(spec.criteria),
                 }
     return questions
 

@@ -1,8 +1,8 @@
 """Two-level cache (in-memory + JSON file) for Jev judgments.
 
 Cache key = sha256(query | candidate ids+texts | model | policy version |
-question-schema version | judged heads). Any coefficient/schema/mode-head
-change invalidates the cache.
+question-schema version | judged heads | rubric id). Any coefficient/schema/
+mode-head/rubric change invalidates the cache.
 """
 
 from __future__ import annotations
@@ -13,6 +13,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from jev_reranker.rubric import DEFAULT_RUBRIC_ID
+
 
 def cache_key(
     query: str,
@@ -21,6 +23,7 @@ def cache_key(
     policy_version: str,
     schema_version: str,
     heads: tuple[str, ...] = ("rel", "util", "sup", "con"),
+    rubric_id: str = DEFAULT_RUBRIC_ID,
 ) -> str:
     payload = json.dumps(
         {
@@ -30,6 +33,7 @@ def cache_key(
             "p": policy_version,
             "s": schema_version,
             "h": list(heads),
+            "r": rubric_id,
         },
         sort_keys=True,
         ensure_ascii=False,

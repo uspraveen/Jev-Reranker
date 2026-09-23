@@ -41,12 +41,26 @@ class JevRerankCompressor:
         texts = [d.page_content if hasattr(d, "page_content") else str(d) for d in documents]
         metas = [d.metadata if hasattr(d, "metadata") else {} for d in documents]
         result = self.reranker.rerank(query, _candidates_from_texts(texts, metas), mode=self.mode, top_k=self.top_n)
-        id2doc = {str(m.get("id", f"c{i}")): d for i, (d, m) in enumerate(zip(documents, metas, strict=True))}
-        out: list[Any] = []
-        for item in result.items:
-            doc = id2doc[item.candidate.id]
-            if hasattr(doc, "metadata"):
-                doc.metadata["jev_value"] = item.value
-                doc.metadata["jev_label"] = item.label.value
-            out.append(doc)
-        return out
+        return _attach(documents, metas, result)
+
+    async def acompress_documents(self, documents: list[Any], query: str) -> list[Any]:
+        """Async twin — awaits the reranker directly instead of blocking."""
+        texts = [d.page_content if hasattr(d, "page_content") else str(d) for d in documents]
+        metas = [d.metadata if hasattr(d, "metadata") else {} for d in documents]
+        result = await self.reranker.arerank(
+            query, _candidates_from_texts(texts, metas), mode=self.mode, top_k=self.top_n
+        )
+        return _attach(documents, metas, result)
+
+
+def _attach(documents: list[Any], metas: list[dict[str, Any]], result: Any) -> list[Any]:
+    id2doc = {str(m.get("id", f"c{i}")): d for i, (d, m) in enumerate(zip(documents, metas, strict=True))}
+    out: list[Any] = []
+    for item in result.items:
+        doc = id2doc[item.candidate.id]
+        if hasattr(doc, "metadata"):
+            doc.metadata["jev_value"] = item.value
+            doc.metadata["jev_label"] = item.label.value
+            doc.metadata["jev_relevance_score"] = item.relevance_score
+        out.append(doc)
+    return out

@@ -21,8 +21,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Coroutine, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, TypeVar
 
 from jev_reranker.client import JevClient
 from jev_reranker.dedup import DEFAULT_DUP_THRESHOLD, suppress_near_duplicates
@@ -31,6 +33,7 @@ from jev_reranker.models import (
     Candidate,
     ContextSelection,
     FallbackType,
+    HeadName,
     Label,
     PolicyConfig,
     RankedItem,
@@ -38,8 +41,39 @@ from jev_reranker.models import (
     TelemetryCallback,
 )
 from jev_reranker.policy import POLICY_VERSION, QUESTION_SCHEMA_VERSION
+from jev_reranker.rubric import Rubric
 
 Mode = Literal["relevance", "memory", "context"]
+
+_T = TypeVar("_T")
+
+
+def as_candidates(items: Sequence[Candidate | str]) -> list[Candidate]:
+    """Accept plain strings anywhere Candidates are expected (positional ids).
+
+    Drop-in ergonomics: the #1 integration mistake is passing ``list[str]``
+    to ``rerank``; that becomes valid input instead of a cryptic pydantic
+    error. Candidate instances (and subclasses) pass through untouched.
+    """
+    out: list[Candidate] = []
+    for i, item in enumerate(items):
+        out.append(item if isinstance(item, Candidate) else Candidate(id=f"c{i}", text=item, retrieval_rank=i))
+    return out
+
+
+def run_coroutine_sync(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Run a coroutine from sync code, even under a running event loop.
+
+    ``asyncio.run`` raises inside Jupyter, FastAPI handlers, or any host with
+    a loop already running in this thread; there the coroutine executes on a
+    private loop in a worker thread instead.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 def estimate_tokens(text: str) -> int:
@@ -108,6 +142,7 @@ class JevReranker:
         fallback: FallbackType = "retrieval_order",
         default_top_k: int | None = None,
         on_event: TelemetryCallback | None = None,
+        rubric: str | Rubric | None = None,
     ) -> None:
         self.client = JevClient(
             judge=judge,
@@ -116,6 +151,7 @@ class JevReranker:
             cache_path=cache_path,
             fallback=fallback,
             on_event=on_event,
+            rubric=rubric,
         )
         self.default_top_k = default_top_k
 
@@ -129,14 +165,15 @@ class JevReranker:
     async def arerank(
         self,
         query: str,
-        candidates: list[Candidate],
+        candidates: Sequence[Candidate | str],
         *,
         mode: Mode = "relevance",
         top_k: int | None = None,
         budget_tokens: int | None = None,
+        heads: tuple[HeadName, ...] | None = None,
     ) -> RerankResult:
         t0 = time.perf_counter()
-        items, meta = await self.client.ajudge_once(query, candidates, mode=mode)
+        items, meta = await self.client.ajudge_once(query, as_candidates(candidates), mode=mode, heads=heads)
         total_ms = round((time.perf_counter() - t0) * 1000, 2)
         k = top_k if top_k is not None else self.default_top_k
         shown = items[:k] if k is not None else items
@@ -170,25 +207,31 @@ class JevReranker:
     def rerank(
         self,
         query: str,
-        candidates: list[Candidate],
+        candidates: Sequence[Candidate | str],
         *,
         mode: Mode = "relevance",
         top_k: int | None = None,
         budget_tokens: int | None = None,
+        heads: tuple[HeadName, ...] | None = None,
     ) -> RerankResult:
-        """Sync wrapper (drop-in for LangChain-style compressors)."""
-        return asyncio.run(self.arerank(query, candidates, mode=mode, top_k=top_k, budget_tokens=budget_tokens))
+        """Sync wrapper (drop-in for LangChain-style compressors).
+
+        Safe to call from inside a running event loop (Jupyter, async hosts).
+        """
+        return run_coroutine_sync(
+            self.arerank(query, candidates, mode=mode, top_k=top_k, budget_tokens=budget_tokens, heads=heads)
+        )
 
     async def aselect(
         self,
         query: str,
-        candidates: list[Candidate],
+        candidates: Sequence[Candidate | str],
         *,
         budget_tokens: int,
         dedup_threshold: float | None = None,
     ) -> ContextSelection:
         t0 = time.perf_counter()
-        items, meta = await self.client.ajudge_once(query, candidates, mode="context")
+        items, meta = await self.client.ajudge_once(query, as_candidates(candidates), mode="context")
         latency_ms = round((time.perf_counter() - t0) * 1000, 2)
         selection = select_for_budget(items, budget_tokens, dedup_threshold=dedup_threshold)
         selection.usage = dict(meta.get("usage", {}))
@@ -198,16 +241,16 @@ class JevReranker:
     def select(
         self,
         query: str,
-        candidates: list[Candidate],
+        candidates: Sequence[Candidate | str],
         *,
         budget_tokens: int,
         dedup_threshold: float | None = None,
     ) -> ContextSelection:
-        return asyncio.run(
+        return run_coroutine_sync(
             self.aselect(query, candidates, budget_tokens=budget_tokens, dedup_threshold=dedup_threshold)
         )
 
-    # Convenience: rerank plain strings.
+    # Convenience: rerank plain strings (also accepted directly by rerank/select).
     def rerank_texts(
         self,
         query: str,
@@ -215,6 +258,6 @@ class JevReranker:
         mode: Mode = "relevance",
         top_k: int | None = None,
         budget_tokens: int | None = None,
+        heads: tuple[HeadName, ...] | None = None,
     ) -> RerankResult:
-        cands = [Candidate(id=f"c{i}", text=t, retrieval_rank=i) for i, t in enumerate(texts)]
-        return self.rerank(query, cands, mode=mode, top_k=top_k, budget_tokens=budget_tokens)
+        return self.rerank(query, texts, mode=mode, top_k=top_k, budget_tokens=budget_tokens, heads=heads)
