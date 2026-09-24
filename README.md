@@ -15,13 +15,13 @@
 </p>
 
 **Decision-aware, calibrated context selection for AI agents, powered by TypeSafe Jev.**
-Jev judges; deterministic Python policy ranks. **One Jev call per rerank** — never one call per memory.
+Jev judges; deterministic Python policy ranks. **One Jev call per rerank** - never one call per memory.
 
 **Contents:** [Three modes](#three-modes) · [Design](#design-one-batched-jev-call) · [Setup](#setup) · [Usage](#usage) · [Generic use](#generic-use-any-retrieval-project) · [BEIR mini-study](#frontier-comparison-jev-vs-hosted--open-weights-rerankers-on-beir-2026-09-23) · [Other checks](#other-checks) · [Layout](#layout)
 
 Instead of embedding similarity, Jev-Reranker asks a System-1 decision model
-(Jev `/v1/systemone`) up to four calibrated questions per candidate — relevance
-(Score 0–3), utility (Score 0–3), superseded (Noul 0–1), conflict (Noul 0–1) —
+(Jev `/v1/systemone`) up to four calibrated questions per candidate - relevance
+(Score 0-3), utility (Score 0-3), superseded (Noul 0-1), conflict (Noul 0-1) -
 **all batched into a single request**, then applies a transparent,
 versioned policy (`POLICY_VERSION=v2`, `QUESTION_SCHEMA_VERSION=v2`) to rank,
 label, and select.
@@ -49,7 +49,7 @@ Per-case `judge_calls_per_rerank = 1.0` is measured in the synthetic eval.
 Two hard rules, enforced by the policy and covered by tests:
 
 1. **Confidence never scales the value.** `policy_value` uses only the two
-   Score heads (normalized 0–3 → 0–1) minus superseded/conflict penalties.
+   Score heads (normalized 0-3 → 0-1) minus superseded/conflict penalties.
    Confidence only *gates*: below `confidence_gate` (0.45) an item becomes
    `UNCERTAIN` instead of acting on its value.
 2. **Never one Jev call per memory.** Candidates × heads are one payload;
@@ -67,7 +67,7 @@ export TYPESAFE_API_KEY=...      # live Jev; without it, OfflineJudge is used
 ```
 
 `JevReranker()` auto-picks `LiveJevJudge` iff `TYPESAFE_API_KEY` is set,
-else the deterministic lexical `OfflineJudge` (test/eval/demo only —
+else the deterministic lexical `OfflineJudge` (test/eval/demo only -
 always labeled `offline-judge-v2`, never presented as Jev output).
 
 ## Usage
@@ -119,20 +119,20 @@ dataset.
 ![Frontier comparison](benchmarks/results/frontier/frontier_ndcg_by_dataset.png)
 
 **3-dataset average.** A statistical tie at the top (0.511 vs 0.509 at
-n=200 per dataset); the open-weights field packs into 0.449–0.498; every
+n=200 per dataset); the open-weights field packs into 0.449-0.498; every
 reranker clears the BM25 floor by +0.04 to +0.10.
 
 ![3-dataset average](benchmarks/results/frontier/frontier_average_ndcg.png)
 
-**Lift over retrieval.** Reranking pays most where retrieval is weakest —
+**Lift over retrieval.** Reranking pays most where retrieval is weakest -
 +0.10 to +0.17 on FiQA vs +0.01 to +0.04 on NFCorpus. Jev posts the
 largest lift on 2 of 3 datasets.
 
 ![Lift over BM25](benchmarks/results/frontier/frontier_lift_over_bm25.png)
 
-**Quality vs latency — the production-deciding pair.** Only MiniLM and
+**Quality vs latency - the production-deciding pair.** Only MiniLM and
 Jev sit on the Pareto frontier; every other system (Cohere, zerank-1,
-Qwen3, BGE) is dominated — something faster is also more accurate.
+Qwen3, BGE) is dominated - something faster is also more accurate.
 
 ![Quality vs latency frontier](benchmarks/results/frontier/frontier_quality_vs_latency.png)
 
@@ -149,9 +149,9 @@ Jev never leaves the top 2, BM25 never leaves last.
 
 A general-purpose decision model, zero-shot through explicit questions,
 matches Cohere's purpose-trained flagship (wins 2 of 3 datasets and the
-average) and leads every open-weights reranker — including ZeroEntropy's
-4B zerank-1 — on 2 of 3 datasets, at competitive latency. Voyage (trial
-quota exhausted) is documented as attempted-not-reported — full caveats,
+average) and leads every open-weights reranker - including ZeroEntropy's
+4B zerank-1 - on 2 of 3 datasets, at competitive latency. Voyage (trial
+quota exhausted) is documented as attempted-not-reported - full caveats,
 protocol, and reproduction steps in
 `benchmarks/results/frontier/README.md`.
 
@@ -183,13 +183,13 @@ legal = Rubric(
 rr = JevReranker(rubric=legal)
 ```
 
-Built-ins: `agent_memory` (default — the original benchmark questions,
+Built-ins: `agent_memory` (default - the original benchmark questions,
 byte-identical), `generic_retrieval` (documents/RAG), `code_search`. Rubric
-identity is part of the judgment cache key — swapping rubrics never serves
+identity is part of the judgment cache key - swapping rubrics never serves
 stale judgments.
 
 **Ecosystem-standard outputs.** Every ranked item carries
-`relevance_score ∈ [0,1]` (raw relevance head / 3 — comparable within one
+`relevance_score ∈ [0,1]` (raw relevance head / 3 - comparable within one
 call, not ratio-scale), independent of the policy `value`. For hosted-API
 compatibility, `CohereCompatReranker` speaks the exact request/response shape
 the rerank market standardized on (`results: [{index, relevance_score,
@@ -200,32 +200,32 @@ from jev_reranker import CohereCompatReranker
 body = CohereCompatReranker(reranker=rr).rerank("query", ["doc one", "doc two"], top_n=2)
 ```
 
-The same contract over HTTP — any language, any HTTP client:
+The same contract over HTTP - any language, any HTTP client:
 
 ```bash
 pip install "jev-reranker[server]"
 uvicorn jev_reranker.server:app --port 8494
 # POST /rerank  {query, documents, top_n}     (Cohere shape)
 # POST /select  {query, documents, budget_tokens}
-# GET  /health  (reports which judge is serving — offline responses are
+# GET  /health  (reports which judge is serving - offline responses are
 #                never presented as Jev output)
 ```
 
 **Ergonomics.** Sync `rerank`/`select` are safe to call from inside a running
-event loop (Jupyter, FastAPI handlers) — they no longer use `asyncio.run` on
-the hot path — and accept plain strings anywhere Candidates are expected
+event loop (Jupyter, FastAPI handlers) - they no longer use `asyncio.run` on
+the hot path - and accept plain strings anywhere Candidates are expected
 (`rr.rerank("query", ["doc one", "doc two"])`). The `heads` argument narrows
 a call's question set (e.g. `rerank(..., mode="memory", heads=("rel",
-"sup"))`) — still one batched Jev call per rerank. `acompress_documents`
+"sup"))`) - still one batched Jev call per rerank. `acompress_documents`
 mirrors the LangChain compressor async-first.
 
 Open for generic adoption (honest list): latency/cost at the 100-candidate
 cap is unmeasured live (measured numbers are at benchmark scale, 4-6
 candidates); documents are single-text (no title/multi-field or
 per-doc chunking yet); question rubrics are configurable but the *head set*
-(rel/util/sup/con) is fixed — new head types need code, not config.
+(rel/util/sup/con) is fixed - new head types need code, not config.
 
-## Measured results — MemoryBench-JR, live Jev
+## Measured results - MemoryBench-JR, live Jev
 
 500 deterministic cases across 10 hard-memory categories (superseded fact,
 contradiction, near-duplicate, wrong-entity decoy, old-plan-vs-final,
@@ -258,27 +258,27 @@ retrieval order 0.111 / 0.747; hashed bag-of-words embedding 0.553 / 0.944;
 Jev relevance mode 0.889 / 1.000; Jev memory mode 0.829 / 1.000.
 
 Calibration (n=2,000 judgments per head, from the live predictions): Brier /
-ECE — useful 0.093 / 0.122, relevant 0.135 / 0.176, superseded 0.037 / 0.094,
+ECE - useful 0.093 / 0.122, relevant 0.135 / 0.176, superseded 0.037 / 0.094,
 conflict 0.099 / 0.195. The live judge is uniformly overconfident (reliability
 curves in `benchmarks/results/`); policy thresholds were deliberately **not**
 tuned to these numbers.
 
 Known weak spots, stated plainly:
 
-- **CONFLICT precision 0.385** (80 false positives vs 50 true positives) —
+- **CONFLICT precision 0.385** (80 false positives vs 50 true positives) -
   the conflict head fires too readily. Retuning `conflict_threshold` from the
   committed calibration threshold table is open work.
-- **Dedup F1 0.309** — near-duplicate suppression uses hashed bag-of-words
+- **Dedup F1 0.309** - near-duplicate suppression uses hashed bag-of-words
   embeddings (dependency-free by design); recall 0.46 means half of true
   near-duplicates survive. A real embedding model is the likely upgrade.
-- MemoryBench-JR is self-generated (deterministic generator) — it measures the
+- MemoryBench-JR is self-generated (deterministic generator) - it measures the
   pipeline against constructed hard cases, not organic data. The LongMemEval
   slice runner exists (`longmemeval_slice.py`) but no numbers are reported:
   the dataset was unreachable from the build VM.
 
 ## Offline synthetic eval (pipeline mechanics)
 
-`python -m jev_reranker.eval_synthetic --n 300 --seed 7` — 300 generated cases
+`python -m jev_reranker.eval_synthetic --n 300 --seed 7` - 300 generated cases
 (6 categories × 50: stale, conflict, distractor, paraphrase, multi_hop,
 recency), real `JevReranker` pipeline on the deterministic lexical
 `offline-judge-v2` (trace: `benchmarks/results/synthetic_eval.json`;
@@ -287,19 +287,19 @@ identical rerun inside a Blaxel sandbox:
 label F1 1.0, judge calls per rerank 1.0, fallback rate 0.0, p50 ~1.3 ms.
 
 Caveat (read before quoting): these recall numbers are bounded by the
-*lexical* offline judge — distractors repeat the query verbatim, so token
+*lexical* offline judge - distractors repeat the query verbatim, so token
 overlap favors them over the gold answer. What this eval genuinely verifies
 is pipeline mechanics: exactly one judge call per rerank, perfect
 STALE/CONFLICT flagging on cue-bearing memories, zero fallbacks. Ranking
 quality against live Jev is measured in the live section above; on the same
 300 cases the offline judge lands all confidence in `[0.75, 1.00]` at
-accuracy 0.167 — uniformly overconfident, so its confidence carries no
+accuracy 0.167 - uniformly overconfident, so its confidence carries no
 discrimination, which is why thresholds were never tuned to it.
 
 ## Other checks
 
 `pytest` 64 passed; `ruff check` clean; `mypy --strict` clean (18 source
-files) — current tree, Python 3.12 (2026-09-22). Arena CLI verified on both
+files) - current tree, Python 3.12 (2026-09-22). Arena CLI verified on both
 samples (STALE + CONFLICT correctly flagged) and all three examples run
 (VM, 2026-09-19).
 
@@ -315,4 +315,4 @@ examples/ demo/ benchmarks/memorybench_jr/ benchmarks/results/ scripts/run_bench
 
 ---
 
-License: MIT · Built on [TypeSafe](https://docs.typesafe.ai)'s Jev decision model — an independent project, not affiliated with TypeSafe, Cohere, Voyage AI, ZeroEntropy, Qwen or BAAI. Benchmark numbers come from our own mini-study; the [run card](benchmarks/results/frontier/README.md) has the full protocol and caveats.
+License: MIT · Built on [TypeSafe](https://docs.typesafe.ai)'s Jev decision model - an independent project, not affiliated with TypeSafe, Cohere, Voyage AI, ZeroEntropy, Qwen or BAAI. Benchmark numbers come from our own mini-study; the [run card](benchmarks/results/frontier/README.md) has the full protocol and caveats.

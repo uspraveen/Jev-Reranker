@@ -275,7 +275,7 @@ class LlamaCppRerankAdapter(BaseAdapter):
 class ZerankAdapter(BaseAdapter):
     """zeroentropy zerank-1 via its own CrossEncoder.predict path.
 
-    The checkpoint stores no classification head — their remote code reads
+    The checkpoint stores no classification head - their remote code reads
     yes/no token logits from the LM head (scaled /5). Feeding pairs through
     plain AutoModelForSequenceClassification scores with a RANDOMLY
     INITIALIZED head (verified: fresh-head warning + below-floor NDCG), so

@@ -2,7 +2,7 @@
 
 Hard agent-memory benchmark for Jev-Reranker. Deterministic, seed-fixed,
 **500 cases across 10 categories** (50 each). Every number reported by the
-runners is measured by executing the real pipeline — nothing is simulated,
+runners is measured by executing the real pipeline - nothing is simulated,
 extrapolated, or copied.
 
 ## Categories
@@ -15,7 +15,7 @@ extrapolated, or copied.
 | `wrong_entity_decoy` | same keywords, wrong service/entity in the answer |
 | `old_plan_vs_final` | early plan vs recorded final decision (plan is STALE) |
 | `changed_preference` | outdated user preference vs explicit update (old is STALE) |
-| `temporal_query` | "as of DATE" — pick the value valid at that date |
+| `temporal_query` | "as of DATE" - pick the value valid at that date |
 | `irrelevant_lexical` | keyword overlap with wrong intent ("rotate the API key") |
 | `multi_hop` | answer requires chaining two memories (owner + escalation policy) |
 | `answer_not_present` | no candidate answers; correct behavior is to USE nothing |
@@ -43,12 +43,12 @@ baselines never call Jev.
 
 ## Metrics
 
-- **recall@1 / recall@3** — gold answer ranked first / in top 3 (memory and
+- **recall@1 / recall@3** - gold answer ranked first / in top 3 (memory and
   relevance modes), excluding `answer_not_present` cases.
-- **rejection_accuracy** — on `answer_not_present` cases, fraction where no
+- **rejection_accuracy** - on `answer_not_present` cases, fraction where no
   candidate was labeled USE/KEEP.
-- **label precision/recall/F1** — per STALE and CONFLICT gold labels.
-- **dedup precision/recall/F1** — context-pass near-duplicate suppression vs
+- **label precision/recall/F1** - per STALE and CONFLICT gold labels.
+- **dedup precision/recall/F1** - context-pass near-duplicate suppression vs
   gold `near_dup_ids`.
 - **Context Precision / Recall / Efficiency** (owner section 21):
   - Precision = |selected ∩ relevant| / |selected|
@@ -66,12 +66,12 @@ baselines never call Jev.
 
 ## Files
 
-- `generate.py` — the deterministic generator (`generate_cases(n, seed)`).
-- `run_eval.py` — full suite runner (writes results JSON + predictions JSONL + PNGs).
-- `baselines.py` — retrieval-order and hashed-bag-of-words embedding baselines.
-- `calibration.py` — Brier/ECE/curves/threshold tables.
-- `context_metrics.py` — context precision/recall/efficiency + oracle knapsack.
-- `plots.py` — matplotlib renderers (Agg backend).
+- `generate.py` - the deterministic generator (`generate_cases(n, seed)`).
+- `run_eval.py` - full suite runner (writes results JSON + predictions JSONL + PNGs).
+- `baselines.py` - retrieval-order and hashed-bag-of-words embedding baselines.
+- `calibration.py` - Brier/ECE/curves/threshold tables.
+- `context_metrics.py` - context precision/recall/efficiency + oracle knapsack.
+- `plots.py` - matplotlib renderers (Agg backend).
 
 Results land in `benchmarks/results/` (committed with full provenance:
 date, host, model, API call counts, seeds, git commit).

@@ -2,7 +2,7 @@
 
 Deterministic, dependency-free embeddings: hashed bag-of-words vectors
 (256 buckets, term frequency, L2-normalized) compared with cosine
-similarity. Two texts sharing > ``threshold`` cosine are near-duplicates —
+similarity. Two texts sharing > ``threshold`` cosine are near-duplicates -
 same fact, differently worded, or trivially re-cased/re-punctuated.
 
 This is a diversity/telemetry tool, NOT a second Jev call: dedup runs

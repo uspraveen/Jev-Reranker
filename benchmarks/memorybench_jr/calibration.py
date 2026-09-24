@@ -6,7 +6,7 @@ Binary outcomes per candidate, derived from MemoryBench-JR gold annotations:
 - ``superseded``: y=1 iff gold label STALE; p = Noul superseded probability.
 - ``conflict``: y=1 iff gold label CONFLICT; p = Noul conflict probability.
 
-All inputs come from a committed predictions JSONL produced by a real run —
+All inputs come from a committed predictions JSONL produced by a real run -
 this module computes, it never simulates.
 """
 

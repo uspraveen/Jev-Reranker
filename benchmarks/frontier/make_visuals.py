@@ -1,7 +1,7 @@
 """Render the frontier-comparison charts from committed per-query rows.
 
 Every number shown is recomputed here from the committed JSONLs with
-pytrec_eval (the same evaluator the runners used) — nothing hand-typed.
+pytrec_eval (the same evaluator the runners used) - nothing hand-typed.
 Visual style follows the Artificial-Analysis leaderboard look: rounded
 bars, values inside, dotted grid, quiet axes.
 
@@ -108,7 +108,7 @@ def value_label(ax, x, height, ymax, text, inside=True):
 
 
 def aa_axes(ax, ymax):
-    """Dotted horizontal grid, no visible y-axis — values live in the bars."""
+    """Dotted horizontal grid, no visible y-axis - values live in the bars."""
     ax.set_ylim(0, ymax)
     ticks = np.linspace(0, ymax, 6)[1:]
     ax.set_yticks(ticks)
@@ -149,7 +149,7 @@ def main() -> None:
     keys_present = [k for k in COLORS if k in avgs]
     ymax = max(v for ds in DATASETS for v in summary[ds].values()) * 1.15
 
-    # Chart 1 — grouped bars per dataset.
+    # Chart 1 - grouped bars per dataset.
     fig, ax = plt.subplots(figsize=(13, 5.6), dpi=160)
     width = 0.8 / len(keys_present)
     x = np.arange(len(DATASETS))
@@ -173,7 +173,7 @@ def main() -> None:
     fig.savefig(ROOT / "frontier_ndcg_by_dataset.png", bbox_inches="tight")
     plt.close(fig)
 
-    # Chart 2 — 3-set average, sorted descending.
+    # Chart 2 - 3-set average, sorted descending.
     order = sorted(keys_present, key=lambda k: -avgs[k])
     fig, ax = plt.subplots(figsize=(12, 5.2), dpi=160)
     x = np.arange(len(order))
@@ -184,13 +184,13 @@ def main() -> None:
     ax.set_xlim(-0.5, len(order) - 0.5)
     ax.set_xticklabels([LABELS[k] for k in order], fontsize=10.5)
     aa_axes(ax, ymax)
-    masthead(fig, "3-dataset average — Jev-Reranker leads the frontier table",
+    masthead(fig, "3-dataset average - Jev-Reranker leads the frontier table",
              "NDCG@10, mean of scifact / nfcorpus / fiqa · mini-study: single seed, 200 queries per dataset")
     fig.subplots_adjust(top=0.8, bottom=0.1, left=0.03, right=0.985)
     fig.savefig(ROOT / "frontier_average_ndcg.png", bbox_inches="tight")
     plt.close(fig)
 
-    # Chart 3 — lift over the BM25 floor.
+    # Chart 3 - lift over the BM25 floor.
     rerank_keys = [k for k in RERANKERS if k in avgs]
     fig, ax = plt.subplots(figsize=(13, 5.4), dpi=160)
     width = 0.8 / len(rerank_keys)
@@ -215,7 +215,7 @@ def main() -> None:
     fig.savefig(ROOT / "frontier_lift_over_bm25.png", bbox_inches="tight")
     plt.close(fig)
 
-    # Chart 4 — latency, same-vantage API pair + on-GPU lanes.
+    # Chart 4 - latency, same-vantage API pair + on-GPU lanes.
     lat = [
         ("MiniLM-L6 (open)\non-GPU", ONNODE_LATENCY["ms-marco-minilm-l6-v2"], "#D6569B"),
         ("Qwen3-0.6B (open)\non-GPU", ONNODE_LATENCY["qwen3-reranker-0.6b"], "#F2A30F"),
@@ -234,7 +234,7 @@ def main() -> None:
     ax.set_xticks(x)
     ax.set_xticklabels([n for n, _, _ in lat], fontsize=10)
     aa_axes(ax, lat_ymax)
-    masthead(fig, "Latency per query — p50, 30 candidates",
+    masthead(fig, "Latency per query - p50, 30 candidates",
              "Jev & Cohere re-measured from the SAME vantage, rotating live queries, n=10, zero cache hits (fair pair) · "
              "open-weights lanes measured on-node · different vantages are directional only")
     fig.subplots_adjust(top=0.8, bottom=0.12, left=0.03, right=0.985)
@@ -242,7 +242,7 @@ def main() -> None:
     plt.close(fig)
 
 
-    # Chart 5 — quality vs latency frontier (two parameters, one view).
+    # Chart 5 - quality vs latency frontier (two parameters, one view).
     zerank_lats2 = []
     for ds in DATASETS:
         for line in (ROOT / f"{ds}__zerank-1.jsonl").read_text(encoding="utf-8").splitlines():
@@ -285,9 +285,9 @@ def main() -> None:
     ax.set_axisbelow(True)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
-    ax.set_xlabel("p50 latency per query (ms, 30 candidates) — log scale", fontsize=10)
+    ax.set_xlabel("p50 latency per query (ms, 30 candidates) - log scale", fontsize=10)
     ax.set_ylabel("NDCG@10, 3-dataset average", fontsize=10)
-    masthead(fig, "Quality vs latency — only MiniLM and Jev sit on the Pareto frontier",
+    masthead(fig, "Quality vs latency - only MiniLM and Jev sit on the Pareto frontier",
              "Every other system is dominated: something is both faster AND more accurate · "
              "Jev/Cohere latencies re-measured same-vantage; open-weights on-GPU; BM25 floor (~0 ms) not shown")
     ax.annotate("Pareto frontier", (80, 0.487), fontsize=8.5, color="#6B7280", rotation=-16)
@@ -295,7 +295,7 @@ def main() -> None:
     fig.savefig(ROOT / "frontier_quality_vs_latency.png", bbox_inches="tight")
     plt.close(fig)
 
-    # Chart 6 — systems x datasets heatmap (all three datasets + average).
+    # Chart 6 - systems x datasets heatmap (all three datasets + average).
     heat_keys = sorted(keys_present, key=lambda k: -avgs[k])
     cols = list(DATASETS) + ["average"]
     matrix = []
@@ -327,7 +327,7 @@ def main() -> None:
     fig.savefig(ROOT / "frontier_heatmap.png", bbox_inches="tight")
     plt.close(fig)
 
-    # Chart 7 — open-weights quality vs model size, hosted APIs as reference lines.
+    # Chart 7 - open-weights quality vs model size, hosted APIs as reference lines.
     scale = [
         ("MiniLM-L6", 0.022, avgs["ms-marco-minilm-l6-v2"], "#D6569B", (6, -12)),
         ("BGE-v2-m3", 0.568, avgs["bge-reranker-v2-m3"], "#1F9D63", (6, -12)),
@@ -337,9 +337,9 @@ def main() -> None:
     fig, ax = plt.subplots(figsize=(11, 5.4), dpi=160)
     ax.axhline(avgs["jev-latest"], linestyle="--", color="#1F6FEB", linewidth=1.4, zorder=2)
     ax.axhline(avgs["cohere"], linestyle="--", color="#23272E", linewidth=1.2, zorder=2)
-    ax.annotate("Jev-Reranker (API) — 0.511", (0.023, avgs["jev-latest"]), xytext=(4, 5),
+    ax.annotate("Jev-Reranker (API) - 0.511", (0.023, avgs["jev-latest"]), xytext=(4, 5),
                 textcoords="offset points", fontsize=9.5, fontweight="bold", color="#1F6FEB")
-    ax.annotate("Cohere v4.0-pro (API) — 0.509", (0.023, avgs["cohere"]), xytext=(4, -12),
+    ax.annotate("Cohere v4.0-pro (API) - 0.509", (0.023, avgs["cohere"]), xytext=(4, -12),
                 textcoords="offset points", fontsize=9.5, color="#23272E")
     for name, params, qual, color, off in scale:
         ax.scatter(params, qual, s=120, color=color, edgecolor="white", linewidth=1.2, zorder=4)

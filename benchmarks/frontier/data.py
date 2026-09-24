@@ -4,7 +4,7 @@ Loads the official BEIR repo files from huggingface.co/datasets/BeIR/<name>
 (parquet shards for corpus/queries, TSV qrels from the BeIR/<name>-qrels
 repo). pyarrow ships musllinux wheels, so this works on the Alpine/musl
 benchmark host without a compiler.
-Candidates come from bm25s with a lean tokenizer (lowercase, no stemmer) —
+Candidates come from bm25s with a lean tokenizer (lowercase, no stemmer) -
 deliberately simple because the floor is shared identically by every system;
 published BM25 numbers used heavier pipelines and will differ (noted in the
 README).

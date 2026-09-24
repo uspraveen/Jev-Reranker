@@ -4,8 +4,8 @@ Generates N cases (default 300) across 6 hard categories, each with a query,
 candidates (1 gold), and gold labels. Runner executes the REAL pipeline
 (``JevReranker``) with either the live Jev judge (--judge live) or the
 deterministic OfflineJudge (default, CI-fast baseline) and reports measured
-metrics — recall@1/3, label F1 on STALE/CONFLICT, fallback rate, cache-hit
-rate, judge calls per rerank — plus a provenance block. Nothing is claimed
+metrics - recall@1/3, label F1 on STALE/CONFLICT, fallback rate, cache-hit
+rate, judge calls per rerank - plus a provenance block. Nothing is claimed
 without being measured here.
 
 For the harder 10-category benchmark see ``benchmarks/memorybench_jr/``.

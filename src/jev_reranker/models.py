@@ -76,10 +76,10 @@ class PolicyConfig(BaseModel):
     """Transparent, configurable coefficients for the deterministic policy.
 
     Default scoring (owner section 7): ``U = 0.55*R + 0.45*V`` and
-    ``J = U*(1-0.75*S)*(1-0.25*C)`` — the multiplicative penalty form.
+    ``J = U*(1-0.75*S)*(1-0.25*C)`` - the multiplicative penalty form.
     ``penalty_form="additive"`` keeps the legacy ``U - 0.80*S - 0.60*C``.
 
-    Confidence NEVER multiplies into the score — it only gates labels/actions.
+    Confidence NEVER multiplies into the score - it only gates labels/actions.
     ``source_priority`` is deterministic metadata applied in code; never a
     question to Jev.
     """

@@ -13,13 +13,13 @@ DOCS = [
     "Our office lunch menu rotates daily.",
 ]
 
-# 1. Built-in rubric preset — same pipeline, domain wording.
+# 1. Built-in rubric preset - same pipeline, domain wording.
 rr = JevReranker(rubric="code_search")
 res = rr.rerank("how do I check a k8s rollout?", DOCS, mode="relevance")
 for it in res.items:
     print("preset:", it.rank, round(it.relevance_score, 3), it.candidate.text[:50])
 
-# 2. Fully custom rubric — one dict per head.
+# 2. Fully custom rubric - one dict per head.
 legal = Rubric(
     name="legal",
     rel=ScoreHeadRubric(

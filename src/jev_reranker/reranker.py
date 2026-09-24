@@ -1,17 +1,17 @@
 """JevReranker: drop-in reranker API with three behavioral modes.
 
-- ``relevance``: classic query/passage rerank — the relevance head ONLY
+- ``relevance``: classic query/passage rerank - the relevance head ONLY
   (one Score question per candidate); value = normalized relevance.
 - ``memory``: all four heads (relevance, utility, superseded, conflict);
   STALE/CONFLICT/UNCERTAIN labels surfaced.
 - ``context``: memory heads PLUS token-budget selection with embedding-based
   near-duplicate suppression. Two-pass structure, documented:
-    pass 1 (Jev): ONE batched call — 4 heads per candidate, ranked + labeled;
+    pass 1 (Jev): ONE batched call - 4 heads per candidate, ranked + labeled;
     pass 2 (local code): near-duplicate suppression (``dedup.py``), then a
     greedy value-per-token knapsack over the survivors. Pass 2 makes no
     remote calls.
 
-Async-first (``arerank``/``aselect``) — the judge call itself is awaited on
+Async-first (``arerank``/``aselect``) - the judge call itself is awaited on
 the SDK's async client when the judge supports it; sync wrappers
 (``rerank``/``select``) for drop-in use. Exactly one judge call per
 invocation (or cache hit).

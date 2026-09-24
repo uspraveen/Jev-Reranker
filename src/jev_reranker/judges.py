@@ -1,9 +1,9 @@
 """Judge backends: the thing that turns (query, candidates) into head judgments.
 
-- ``LiveJevJudge``: the real path — one ``TypeSafeClient.system_one()`` call
+- ``LiveJevJudge``: the real path - one ``TypeSafeClient.system_one()`` call
   per rerank with all active heads batched. Requires ``TYPESAFE_API_KEY``.
 - ``AsyncLiveJevJudge``: identical but on the SDK's native async client
-  (``AsyncTypeSafeClient``) — one async call per rerank, no executor.
+  (``AsyncTypeSafeClient``) - one async call per rerank, no executor.
 - ``OfflineJudge``: deterministic lexical judge with identical answer shapes,
   for tests / synthetic eval / demos without a key. Clearly labeled everywhere
   it is used; never presented as Jev output.
@@ -60,7 +60,7 @@ class Judge(Protocol):
 
 
 class AsyncJudge(Protocol):
-    """Async twin of :class:`Judge` — one awaitable remote call per rerank."""
+    """Async twin of :class:`Judge` - one awaitable remote call per rerank."""
 
     @property
     def model_name(self) -> str: ...
@@ -245,7 +245,7 @@ class LiveJevJudge:
 class AsyncLiveJevJudge:
     """Native-async Jev backend on the SDK's ``AsyncTypeSafeClient``.
 
-    One awaited ``system_one`` call per rerank — no thread executor.
+    One awaited ``system_one`` call per rerank - no thread executor.
     """
 
     def __init__(

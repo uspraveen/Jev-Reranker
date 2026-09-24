@@ -1,7 +1,7 @@
 """Jev-Reranker: decision-aware, calibrated context selection for AI agents.
 
 Jev (TypeSafe System One model) makes judgments; deterministic Python policy
-makes the ranking. Exactly ONE ``/v1/systemone`` call per rerank/select —
+makes the ranking. Exactly ONE ``/v1/systemone`` call per rerank/select -
 all candidates x all active heads are batched into a single request.
 
 Behavioral modes: ``relevance`` (relevance head only), ``memory`` (all four

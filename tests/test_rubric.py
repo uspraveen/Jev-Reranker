@@ -39,7 +39,7 @@ def test_default_rubric_matches_original_hardcoded_questions() -> None:
     assert q["sup__a"] == {
         "type": "noul",
         "instructions": (
-            "Is the fact in candidate [a] superseded — that is, replaced or invalidated "
+            "Is the fact in candidate [a] superseded - that is, replaced or invalidated "
             "by newer information about the same fact (in the other candidates or the query)?"
         ),
         "criteria": {

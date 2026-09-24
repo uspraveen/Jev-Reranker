@@ -4,7 +4,7 @@
 (or ``{"text": ...}`` dicts) and returns the shape hosted rerank APIs return:
 ``{"id", "results": [{"index", "relevance_score", "document"}]}`` where
 ``index`` is positional over the input list and ``relevance_score`` is in
-[0, 1] (raw relevance head / 3 — comparable across documents of one call,
+[0, 1] (raw relevance head / 3 - comparable across documents of one call,
 not ratio-scale, mirroring Cohere's own caveat).
 
 Jev-specific richness (labels, policy value, per-head judgments) travels in

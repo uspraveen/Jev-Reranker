@@ -44,7 +44,7 @@ class JevRerankCompressor:
         return _attach(documents, metas, result)
 
     async def acompress_documents(self, documents: list[Any], query: str) -> list[Any]:
-        """Async twin — awaits the reranker directly instead of blocking."""
+        """Async twin - awaits the reranker directly instead of blocking."""
         texts = [d.page_content if hasattr(d, "page_content") else str(d) for d in documents]
         metas = [d.metadata if hasattr(d, "metadata") else {} for d in documents]
         result = await self.reranker.arerank(

@@ -1,7 +1,7 @@
 """Deterministic ranking policy.
 
 Jev makes judgments (relevance Score 0-3, utility Score 0-3, superseded Noul,
-conflict Noul). This module — pure Python, no model calls — turns those
+conflict Noul). This module - pure Python, no model calls - turns those
 judgments into a ranking. Transparent, configurable coefficients, versioned.
 
 Hard rules:
@@ -123,7 +123,7 @@ def assign_label(
 
     Head flags gate on their OWN probability: superseded/conflict are Noul
     probabilities, so STALE/CONFLICT fire when the head crosses its threshold
-    (dominant head wins when both fire) — never on Score-head confidence.
+    (dominant head wins when both fire) - never on Score-head confidence.
     Score-head confidence gates only the VALUE labels: below the gate an item
     becomes UNCERTAIN instead of acting on its value. Confidence never scales
     the value itself.
@@ -151,7 +151,7 @@ def apply_policy(
     cfg: PolicyConfig | None = None,
     heads: tuple[HeadName, ...] = ("rel", "util", "sup", "con"),
 ) -> list[RankedItem]:
-    """Rank candidates best-first. Pure function — no I/O, no model calls.
+    """Rank candidates best-first. Pure function - no I/O, no model calls.
 
     Deterministic ``source_priority`` metadata is a tie-breaker (after value
     and confidence, before retrieval order): never a question to Jev.

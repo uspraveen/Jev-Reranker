@@ -1,13 +1,13 @@
 """Question rubrics: the text Jev is actually asked, per head.
 
 The policy math is domain-generic, but the *questions* encode what a domain
-means by "relevant", "usable", "superseded", "conflicting" — so they are
+means by "relevant", "usable", "superseded", "conflicting" - so they are
 configurable. A :class:`Rubric` carries one question per head (``rel``/``util``
 Score heads with 4-level 0-3 criteria, ``sup``/``con`` Noul heads with
 true/false criteria). Instructions may contain the literal token ``[cid]``,
 replaced with each candidate's id at question-build time.
 
-Built-in presets: ``agent_memory`` (the default — byte-identical to the
+Built-in presets: ``agent_memory`` (the default - byte-identical to the
 originally hard-coded questions), ``generic_retrieval`` (documents/RAG), and
 ``code_search``. A fully custom rubric is one ``Rubric`` instance away:
 ``JevReranker(rubric=Rubric(...))``.
@@ -85,7 +85,7 @@ AGENT_MEMORY = Rubric(
     ),
     sup=NoulHeadRubric(
         instructions=(
-            "Is the fact in candidate [cid] superseded — that is, replaced or invalidated "
+            "Is the fact in candidate [cid] superseded - that is, replaced or invalidated "
             "by newer information about the same fact (in the other candidates or the query)?"
         ),
         criteria={
@@ -124,7 +124,7 @@ GENERIC_RETRIEVAL = Rubric(
     ),
     sup=NoulHeadRubric(
         instructions=(
-            "Is the content in candidate [cid] superseded — replaced or invalidated by newer "
+            "Is the content in candidate [cid] superseded - replaced or invalidated by newer "
             "information about the same subject (in the other candidates or the query)?"
         ),
         criteria={
@@ -163,7 +163,7 @@ CODE_SEARCH = Rubric(
     ),
     sup=NoulHeadRubric(
         instructions=(
-            "Is the code in candidate [cid] superseded — a deprecated or replaced API/version "
+            "Is the code in candidate [cid] superseded - a deprecated or replaced API/version "
             "made obsolete by newer information (in the other candidates or the query)?"
         ),
         criteria={

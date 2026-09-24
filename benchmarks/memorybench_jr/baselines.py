@@ -4,7 +4,7 @@
 - ``embedding``: rank by cosine(hashed-embedding(query), embedding(candidate)).
 
 Every number in the comparison table is produced by running these systems on
-the same generated cases — nothing is copied from prior work.
+the same generated cases - nothing is copied from prior work.
 """
 
 from __future__ import annotations

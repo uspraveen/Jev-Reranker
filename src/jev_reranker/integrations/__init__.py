@@ -1,4 +1,4 @@
-"""Framework integrations — all optional, all lazy-imported, one module each.
+"""Framework integrations - all optional, all lazy-imported, one module each.
 
 - ``jev_reranker.integrations.langchain``: ``JevRerankCompressor``
 - ``jev_reranker.integrations.langgraph``: ``memory_triage_node``

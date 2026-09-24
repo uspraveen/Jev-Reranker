@@ -127,7 +127,7 @@ LABEL_COLORS = {
 def render_html(sample_results: list[dict[str, Any]]) -> str:
     parts = [
         "<!doctype html><html><head><meta charset='utf-8'>",
-        "<title>Reranker Arena — Jev-Reranker</title>",
+        "<title>Reranker Arena - Jev-Reranker</title>",
         "<style>",
         "body{font-family:system-ui,sans-serif;margin:2rem;background:#f8fafc;color:#0f172a}",
         "h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:2rem}",
@@ -142,7 +142,7 @@ def render_html(sample_results: list[dict[str, Any]]) -> str:
         "font-family:ui-monospace,monospace;font-size:0.85rem}",
         ".text{font-size:0.85rem;color:#334155;margin-top:4px}",
         "</style></head><body>",
-        "<h1>Reranker Arena — retrieval order vs Jev-Reranker</h1>",
+        "<h1>Reranker Arena - retrieval order vs Jev-Reranker</h1>",
     ]
     for r in sample_results:
         parts.append(f"<h2>Query: {r['query']}</h2>")
@@ -198,7 +198,7 @@ def main() -> None:
     try:
         import streamlit as st
 
-        st.title("Reranker Arena — retrieval order vs Jev-Reranker")
+        st.title("Reranker Arena - retrieval order vs Jev-Reranker")
         idx = st.selectbox("sample", range(len(SAMPLES)), format_func=lambda i: SAMPLES[i]["query"])
         s = SAMPLES[int(idx)]
         query = st.text_input("query", s["query"])
@@ -207,7 +207,7 @@ def main() -> None:
         if st.button("Rerank"):
             out = run_demo(query, [t for t in texts if t.strip()], budget_tokens=budget)
             for x in out["reranked"]:
-                st.markdown(f"**{x['id']}** `{x['label']}` value={x['value']} — {x['text']}")
+                st.markdown(f"**{x['id']}** `{x['label']}` value={x['value']} - {x['text']}")
                 for name, val in x["heads"].items():
                     st.progress(val, text=f"{name} {val:.2f}")
             st.json({k: v for k, v in out.items() if k != "reranked"})

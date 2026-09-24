@@ -4,14 +4,14 @@
     uvicorn jev_reranker.server:app --port 8494
 
 Endpoints:
-- ``POST /rerank`` — Cohere-compatible: ``{query, documents, top_n}`` ->
+- ``POST /rerank`` - Cohere-compatible: ``{query, documents, top_n}`` ->
   ``{id, results: [{index, relevance_score, document}], meta}``
-- ``POST /select`` — token-budget selection: ``{query, documents, budget_tokens}``
-- ``GET  /health`` — judge/model info
+- ``POST /select`` - token-budget selection: ``{query, documents, budget_tokens}``
+- ``GET  /health`` - judge/model info
 
 The judge is chosen at startup like ``JevReranker()``: live Jev iff
 ``TYPESAFE_API_KEY`` is set, else the offline judge (``/health`` reports
-which one is serving — offline responses are never presented as Jev output).
+which one is serving - offline responses are never presented as Jev output).
 """
 
 from __future__ import annotations
