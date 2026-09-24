@@ -6,21 +6,77 @@ floor, on three BEIR datasets. Every system re-scored the **identical** BM25
 top-30 candidate lists; NDCG@10 via `pytrec_eval` (trec gains). Full
 per-query rows are committed next to this file (`<dataset>__<system>.jsonl`).
 
+## Reading the charts
+
+Each chart is regenerated from the committed per-query rows by
+`python -m benchmarks.frontier.make_visuals` (also writes
+`frontier_summary.json`). What each one shows, and what we read from it:
+
+### 1 · NDCG@10 by dataset
+
 ![NDCG@10 by dataset](frontier_ndcg_by_dataset.png)
+
+- Jev tops SciFact (.784) and NFCorpus (.343); Cohere's flagship edges
+  FiQA (.420 vs .407). No dataset separates the two API leaders by more
+  than 0.012 — parity territory at n=200.
+- The BM25 floor swings 0.248 → 0.679 across domains: how much headroom
+  reranking has is set by how good retrieval was to begin with.
+
+### 2 · 3-dataset average
 
 ![3-dataset average](frontier_average_ndcg.png)
 
+- A statistical tie at the top: 0.511 vs 0.509 at n=200 per dataset.
+- The open-weights field packs tightly (0.449–0.498); zerank-1 leads it.
+- Every reranker clears the retrieval floor by +0.04 to +0.10.
+
+### 3 · Lift over the retrieval floor
+
 ![Lift over BM25](frontier_lift_over_bm25.png)
+
+- Reranking helps everywhere, but the payoff is domain-dependent: FiQA
+  (weak lexical retrieval) rewards it most (+0.10 to +0.17); NFCorpus
+  rewards it least (+0.01 to +0.04).
+- Jev posts the largest lift on SciFact (+0.105) and NFCorpus (+0.041);
+  Cohere on FiQA (+0.171).
+
+### 4 · Quality vs latency (the production-deciding pair)
 
 ![Quality vs latency](frontier_quality_vs_latency.png)
 
+- Only MiniLM and Jev are non-dominated: every other system has something
+  that is both faster AND more accurate.
+- Cohere is strictly dominated by Jev — 393 ms slower for −0.002 quality
+  (same-vantage pair, n=10 rotating live queries).
+
+### 5 · Latency distribution
+
+![Latency per query](frontier_latency.png)
+
+- Same-box fair pair: Jev 218 ms vs Cohere 611 ms (p95 291 vs 806).
+- Open-weights on-GPU: MiniLM 33 → Qwen3 234 → BGE 354 → zerank ~500 ms.
+- Jev serves repeat queries from cache at ~1.3 ms (product context,
+  excluded from the comparison).
+
+### 6 · Full matrix
+
 ![Heatmap](frontier_heatmap.png)
+
+- The quality ordering is remarkably stable across datasets: Jev never
+  leaves the top 2; BM25 never leaves last.
+- SciFact separates systems the most (0.679 → 0.784); NFCorpus compresses
+  them (0.302 → 0.343) — a domain where candidate quality, not reranking,
+  is the bottleneck.
+
+### 7 · Open-weights scale
 
 ![Open-weights scale](frontier_scale_open_weights.png)
 
-Charts are regenerated from the committed per-query rows by
-`python -m benchmarks.frontier.make_visuals` (also writes
-`frontier_summary.json`).
+- A 180× parameter range (22M → 4B) buys +0.049 NDCG — diminishing
+  returns are steep.
+- Qwen3 at 0.6B nearly matches zerank-1 at 4B (6.7× bigger for +0.011).
+- Both hosted reference lines (Jev, Cohere) sit above every open point
+  despite undisclosed sizes.
 
 ## Protocol
 
@@ -81,9 +137,8 @@ while leading on 2 of 3 datasets. Jev also serves **cache hits at ~1.3 ms**
 for repeated queries (vs 2 ms measured) — shown for product context, excluded
 from the comparison. Cohere's wall time inside the throttled benchmark run is
 not a service-latency number and is not quoted. Open-weights on-GPU lanes are
-on-node compute; cross-vantage gaps are directional only.
-
-![Latency per query](frontier_latency.png)
+on-node compute; cross-vantage gaps are directional only. (The latency chart
+lives in "Reading the charts", chart 5.)
 
 ### Self-hosting zerank-1 warning
 

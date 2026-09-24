@@ -96,6 +96,41 @@ Latency per query (p50, 30 candidates): MiniLM-L6 33 ms (on-GPU) ·
 **Jev 218 ms** (API, same-vantage pair) · Qwen3-0.6B 234 ms (on-GPU) ·
 BGE-v2-m3 354 ms (on-GPU) · Cohere ~611 ms (API, same-vantage pair).
 
+**By dataset.** Jev tops SciFact and NFCorpus; Cohere's flagship edges
+FiQA. The two API leaders never separate by more than 0.012 on any
+dataset.
+
+![Frontier comparison](benchmarks/results/frontier/frontier_ndcg_by_dataset.png)
+
+**3-dataset average.** A statistical tie at the top (0.511 vs 0.509 at
+n=200 per dataset); the open-weights field packs into 0.449–0.498; every
+reranker clears the BM25 floor by +0.04 to +0.10.
+
+![3-dataset average](benchmarks/results/frontier/frontier_average_ndcg.png)
+
+**Lift over retrieval.** Reranking pays most where retrieval is weakest —
++0.10 to +0.17 on FiQA vs +0.01 to +0.04 on NFCorpus. Jev posts the
+largest lift on 2 of 3 datasets.
+
+![Lift over BM25](benchmarks/results/frontier/frontier_lift_over_bm25.png)
+
+**Quality vs latency — the production-deciding pair.** Only MiniLM and
+Jev sit on the Pareto frontier; every other system (Cohere, zerank-1,
+Qwen3, BGE) is dominated — something faster is also more accurate.
+
+![Quality vs latency frontier](benchmarks/results/frontier/frontier_quality_vs_latency.png)
+
+**Latency.** Same-box fair pair: Jev 218 ms vs Cohere 611 ms (zero cache
+hits, rotating live queries). Jev also serves repeat queries from cache
+at ~1.3 ms.
+
+![Latency](benchmarks/results/frontier/frontier_latency.png)
+
+**Full matrix.** The quality ordering is stable across all three datasets:
+Jev never leaves the top 2, BM25 never leaves last.
+
+![NDCG heatmap](benchmarks/results/frontier/frontier_heatmap.png)
+
 A general-purpose decision model, zero-shot through explicit questions,
 matches Cohere's purpose-trained flagship (wins 2 of 3 datasets and the
 average) and leads every open-weights reranker — including ZeroEntropy's
@@ -103,14 +138,6 @@ average) and leads every open-weights reranker — including ZeroEntropy's
 quota exhausted) is documented as attempted-not-reported — full caveats,
 protocol, and reproduction steps in
 `benchmarks/results/frontier/README.md`.
-
-![Frontier comparison](benchmarks/results/frontier/frontier_ndcg_by_dataset.png)
-
-![3-dataset average](benchmarks/results/frontier/frontier_average_ndcg.png)
-
-![Lift over BM25](benchmarks/results/frontier/frontier_lift_over_bm25.png)
-
-![Latency](benchmarks/results/frontier/frontier_latency.png)
 
 ![Quality vs latency frontier](benchmarks/results/frontier/frontier_quality_vs_latency.png)
 
