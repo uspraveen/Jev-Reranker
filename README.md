@@ -17,6 +17,13 @@
 **Decision-aware, calibrated context selection for AI agents, powered by TypeSafe Jev.**
 Jev judges; deterministic Python policy ranks. **One Jev call per rerank** - never one call per memory.
 
+<p align="center">
+  <a href="docs/media/jev_reranker_overview.mp4">
+    <img src="docs/media/poster.jpg" alt="38-second overview video" width="72%">
+  </a><br>
+  <sub><b>▶ 38-second overview</b> - how the pipeline works, end to end</sub>
+</p>
+
 **Contents:** [Three modes](#three-modes) · [Design](#design-one-batched-jev-call) · [Setup](#setup) · [Usage](#usage) · [Generic use](#generic-use-any-retrieval-project) · [BEIR mini-study](#frontier-comparison-jev-vs-hosted--open-weights-rerankers-on-beir-2026-09-23) · [Other checks](#other-checks) · [Layout](#layout)
 
 Instead of embedding similarity, Jev-Reranker asks a System-1 decision model
