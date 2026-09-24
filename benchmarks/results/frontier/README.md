@@ -77,6 +77,8 @@ from the comparison. Cohere's wall time inside the throttled benchmark run is
 not a service-latency number and is not quoted. Open-weights on-GPU lanes are
 on-node compute; cross-vantage gaps are directional only.
 
+![Latency per query](frontier_latency.png)
+
 ### Self-hosting zerank-1 warning
 
 zerank-1 must be served through its own remote-code `predict()` path (chat
