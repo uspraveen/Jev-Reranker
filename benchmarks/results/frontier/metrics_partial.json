@@ -18,5 +18,19 @@
       "latency_ms_p95": 0.0,
       "usage_totals": {}
     }
+  },
+  "fiqa": {
+    "voyage-2.5": {
+      "n": 129,
+      "ndcg_cut_10_mean": 0.4145,
+      "ndcg_cut_10_std": 0.4007,
+      "recall_10_mean": 0.4127,
+      "errors": 71,
+      "latency_ms_p50": 20995.44,
+      "latency_ms_p95": 42186.78,
+      "usage_totals": {
+        "total_tokens": 777907.0
+      }
+    }
   }
 }

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 540" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <rect x="0.75" y="0.75" width="1258.5" height="538.5" rx="18" fill="#ffffff" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- masthead -->
+  <text x="36" y="50" font-size="19" font-weight="700" fill="#111827">How Jev-Reranker works</text>
+  <text x="36" y="74" font-size="12.5" fill="#6B7280">Jev judges · a deterministic, versioned policy ranks · exactly one API call per rerank</text>
+  <text x="1224" y="50" font-size="11.5" fill="#9CA3AF" text-anchor="end">N candidates × 4 questions = one batched request</text>
+
+  <!-- ============ stage 1 · INPUT ============ -->
+  <rect x="36" y="104" width="250" height="216" rx="14" fill="#F3F4F6" stroke="#D1D5DB"/>
+  <text x="54" y="134" font-size="11" font-weight="700" letter-spacing="2" fill="#6B7280">INPUT</text>
+  <rect x="54" y="146" width="214" height="34" rx="8" fill="#ffffff" stroke="#D1D5DB"/>
+  <text x="66" y="168" font-size="13" font-weight="600" fill="#111827">query</text>
+  <rect x="54" y="188" width="214" height="30" rx="8" fill="#ffffff" stroke="#D1D5DB"/>
+  <text x="66" y="208" font-size="12" fill="#374151">candidate · doc / memory</text>
+  <rect x="54" y="226" width="214" height="30" rx="8" fill="#ffffff" stroke="#D1D5DB"/>
+  <text x="66" y="246" font-size="12" fill="#374151">candidate · doc / memory</text>
+  <rect x="54" y="264" width="214" height="30" rx="8" fill="#ffffff" stroke="#D1D5DB"/>
+  <text x="66" y="284" font-size="12" fill="#6B7280">… up to N</text>
+  <text x="54" y="312" font-size="11" fill="#6B7280">timestamps + source ride along as</text>
+  <text x="54" y="306" font-size="11" fill="#6B7280"> </text>
+
+  <!-- arrow 1 -->
+  <line x1="288" y1="214" x2="330" y2="214" stroke="#9CA3AF" stroke-width="2"/>
+  <polygon points="330,208 342,214 330,220" fill="#9CA3AF"/>
+  <text x="311" y="200" font-size="10.5" fill="#6B7280" text-anchor="middle">top-k</text>
+
+  <!-- ============ stage 2 · JEV JUDGES (blue) ============ -->
+  <rect x="342" y="104" width="300" height="216" rx="14" fill="#1F6FEB"/>
+  <text x="360" y="134" font-size="11" font-weight="700" letter-spacing="2" fill="#BFDBFE">JEV JUDGES — ONE CALL</text>
+  <text x="360" y="156" font-size="13" font-weight="600" fill="#ffffff">/v1/systemone · batched</text>
+  <rect x="360" y="168" width="264" height="26" rx="13" fill="#3B82F6"/>
+  <text x="374" y="185" font-size="12" font-weight="600" fill="#ffffff">Relevance</text>
+  <text x="610" y="185" font-size="12" fill="#DBEAFE" text-anchor="end">Score 0–3</text>
+  <rect x="360" y="198" width="264" height="26" rx="13" fill="#3B82F6"/>
+  <text x="374" y="215" font-size="12" font-weight="600" fill="#ffffff">Utility</text>
+  <text x="610" y="215" font-size="12" fill="#DBEAFE" text-anchor="end">Score 0–3</text>
+  <rect x="360" y="228" width="264" height="26" rx="13" fill="#3B82F6"/>
+  <text x="374" y="245" font-size="12" font-weight="600" fill="#ffffff">Superseded</text>
+  <text x="610" y="245" font-size="12" fill="#DBEAFE" text-anchor="end">Noul 0–1</text>
+  <rect x="360" y="258" width="264" height="26" rx="13" fill="#3B82F6"/>
+  <text x="374" y="275" font-size="12" font-weight="600" fill="#ffffff">Conflict</text>
+  <text x="610" y="275" font-size="12" fill="#DBEAFE" text-anchor="end">Noul 0–1</text>
+  <text x="360" y="307" font-size="11" fill="#BFDBFE">answers: score + confidence · probability</text>
+
+  <!-- arrow 2 -->
+  <line x1="644" y1="214" x2="686" y2="214" stroke="#9CA3AF" stroke-width="2"/>
+  <polygon points="686,208 698,214 686,220" fill="#9CA3AF"/>
+  <text x="665" y="200" font-size="10.5" fill="#6B7280" text-anchor="middle">judgments</text>
+
+  <!-- ============ stage 3 · POLICY (dark) ============ -->
+  <rect x="698" y="104" width="310" height="216" rx="14" fill="#111827"/>
+  <text x="716" y="134" font-size="11" font-weight="700" letter-spacing="2" fill="#9CA3AF">POLICY RANKS — DETERMINISTIC</text>
+  <text x="716" y="162" font-size="13" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#F9FAFB">U = 0.55·R + 0.45·V</text>
+  <text x="716" y="184" font-size="13" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#F9FAFB">J = U·(1 − 0.75·S)·(1 − 0.25·C)</text>
+  <text x="716" y="208" font-size="11" fill="#9CA3AF">confidence gates labels, never scales value</text>
+  <rect x="716" y="220" width="58" height="22" rx="11" fill="#10B981"/>
+  <text x="745" y="235" font-size="11" font-weight="700" fill="#062B1C" text-anchor="middle">USE</text>
+  <rect x="780" y="220" width="58" height="22" rx="11" fill="#3B82F6"/>
+  <text x="809" y="235" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">KEEP</text>
+  <rect x="716" y="248" width="58" height="22" rx="11" fill="#6B7280"/>
+  <text x="745" y="263" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">DROP</text>
+  <rect x="780" y="248" width="70" height="22" rx="11" fill="#F59E0B"/>
+  <text x="815" y="263" font-size="11" font-weight="700" fill="#3B2200" text-anchor="middle">STALE</text>
+  <rect x="716" y="276" width="86" height="22" rx="11" fill="#EF4444"/>
+  <text x="759" y="291" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">CONFLICT</text>
+  <rect x="808" y="276" width="96" height="22" rx="11" fill="#8B5CF6"/>
+  <text x="856" y="291" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">UNCERTAIN</text>
+
+  <!-- arrow 3 -->
+  <line x1="1010" y1="214" x2="1044" y2="214" stroke="#9CA3AF" stroke-width="2"/>
+  <polygon points="1044,208 1056,214 1044,220" fill="#9CA3AF"/>
+  <text x="1027" y="200" font-size="10.5" fill="#6B7280" text-anchor="middle">ranked</text>
+
+  <!-- ============ stage 4 · OUTPUT (green) ============ -->
+  <rect x="1056" y="104" width="168" height="216" rx="14" fill="#ECFDF5" stroke="#10B981"/>
+  <text x="1072" y="134" font-size="11" font-weight="700" letter-spacing="2" fill="#047857">OUTPUT</text>
+  <text x="1072" y="162" font-size="13" font-weight="600" fill="#111827">ranked + labeled</text>
+  <text x="1072" y="184" font-size="12" fill="#374151">relevance_score 0–1</text>
+  <text x="1072" y="204" font-size="12" fill="#374151">policy value + label</text>
+  <text x="1072" y="224" font-size="12" fill="#374151">per-head judgments</text>
+  <text x="1072" y="244" font-size="12" fill="#374151">token-budget selection</text>
+  <text x="1072" y="264" font-size="12" fill="#374151">usage + telemetry</text>
+  <text x="1072" y="296" font-size="11" fill="#047857">drop-in: python · HTTP · chat</text>
+
+  <!-- ============ mode strip ============ -->
+  <rect x="36" y="352" width="392" height="76" rx="12" fill="#ffffff" stroke="#D1D5DB"/>
+  <rect x="36" y="352" width="6" height="76" rx="3" fill="#6B7280"/>
+  <text x="60" y="382" font-size="12.5" font-weight="700" fill="#111827">MODE · relevance</text>
+  <text x="60" y="404" font-size="11.5" fill="#6B7280">classic rerank · relevance head only · 1 question / candidate</text>
+
+  <rect x="444" y="352" width="392" height="76" rx="12" fill="#ffffff" stroke="#D1D5DB"/>
+  <rect x="444" y="352" width="6" height="76" rx="3" fill="#1F6FEB"/>
+  <text x="468" y="382" font-size="12.5" font-weight="700" fill="#111827">MODE · memory</text>
+  <text x="468" y="404" font-size="11.5" fill="#6B7280">4 heads · STALE / CONFLICT / UNCERTAIN labels surfaced</text>
+
+  <rect x="852" y="352" width="372" height="76" rx="12" fill="#ffffff" stroke="#D1D5DB"/>
+  <rect x="852" y="352" width="6" height="76" rx="3" fill="#10B981"/>
+  <text x="876" y="382" font-size="12.5" font-weight="700" fill="#111827">MODE · context</text>
+  <text x="876" y="404" font-size="11.5" fill="#6B7280">token-budget knapsack + near-duplicate suppression</text>
+
+  <!-- resilience strip -->
+  <text x="36" y="466" font-size="11.5" fill="#6B7280">resilience: judgment cache keyed on policy + schema + rubric · fallback to retrieval order when the judge is unreachable · telemetry hooks · request IDs</text>
+  <text x="36" y="488" font-size="11.5" fill="#6B7280">customization: PolicyConfig weights &amp; thresholds · swappable Judge backends · domain rubrics (agent_memory / generic_retrieval / code_search / custom)</text>
+  <text x="1224" y="516" font-size="10.5" fill="#9CA3AF" text-anchor="end">benchmarks committed with full provenance · see benchmarks/results/frontier</text>
+</svg>

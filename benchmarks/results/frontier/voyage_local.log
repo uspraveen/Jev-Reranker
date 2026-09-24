@@ -32,3 +32,7 @@
 [fiqa] voyage-2.5: 100/200 (5544s)
 [fiqa] voyage-2.5: 125/200 (7014s)
 [fiqa] voyage-2.5: 150/200 (8481s)
+[fiqa] voyage-2.5: 175/200 (10020s)
+[fiqa] voyage-2.5: 200/200 (11448s)
+[fiqa] voyage-2.5: ndcg@10=0.4145 errors=71
+=== DONE ===

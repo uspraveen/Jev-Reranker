@@ -1,7 +1,23 @@
 # Jev-Reranker
 
-Decision-aware, calibrated context selection for AI agents, powered by TypeSafe Jev.
+<p align="center">
+  <img src="docs/architecture.svg" alt="How Jev-Reranker works: query + candidates → one batched Jev call (relevance, utility, superseded, conflict) → deterministic versioned policy → ranked, labeled output"
+       width="100%">
+</p>
+
+<p align="center">
+  <a href="benchmarks/results/frontier/README.md"><img alt="BEIR mini-study" src="https://img.shields.io/badge/BEIR%20mini--study-Jev%200.511%20avg-1F6FEB"></a>
+  <img alt="Tests" src="https://img.shields.io/badge/tests-65%20passing-10B981">
+  <img alt="Type check" src="https://img.shields.io/badge/mypy--strict-clean-3B82F6">
+  <img alt="Lint" src="https://img.shields.io/badge/ruff-clean-10B981">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
+</p>
+
+**Decision-aware, calibrated context selection for AI agents, powered by TypeSafe Jev.**
 Jev judges; deterministic Python policy ranks. **One Jev call per rerank** — never one call per memory.
+
+**Contents:** [Three modes](#three-modes) · [Design](#design-one-batched-jev-call) · [Setup](#setup) · [Usage](#usage) · [Generic use](#generic-use-any-retrieval-project) · [BEIR mini-study](#frontier-comparison-jev-vs-hosted--open-weights-rerankers-on-beir-2026-09-23) · [Other checks](#other-checks) · [Layout](#layout)
 
 Instead of embedding similarity, Jev-Reranker asks a System-1 decision model
 (Jev `/v1/systemone`) up to four calibrated questions per candidate — relevance
@@ -296,3 +312,7 @@ src/jev_reranker/  policy.py rubric.py client.py judges.py models.py reranker.py
 tests/             policy / client / reranker / rubric / dedup / cache-schema / memorybench / server (64 tests)
 examples/ demo/ benchmarks/memorybench_jr/ benchmarks/results/ scripts/run_benchmarks.py
 ```
+
+---
+
+License: MIT · Built on [TypeSafe](https://docs.typesafe.ai)'s Jev decision model — an independent project, not affiliated with TypeSafe, Cohere, Voyage AI, ZeroEntropy, Qwen or BAAI. Benchmark numbers come from our own mini-study; the [run card](benchmarks/results/frontier/README.md) has the full protocol and caveats.
