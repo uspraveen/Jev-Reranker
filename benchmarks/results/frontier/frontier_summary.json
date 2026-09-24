@@ -5,7 +5,8 @@
     "cohere": 0.7728,
     "qwen3-reranker-0.6b": 0.7485,
     "bge-reranker-v2-m3": 0.7328,
-    "ms-marco-minilm-l6-v2": 0.6861
+    "ms-marco-minilm-l6-v2": 0.6861,
+    "zerank-1": 0.7625
   },
   "nfcorpus": {
     "bm25": 0.3019,
@@ -13,7 +14,8 @@
     "cohere": 0.3346,
     "qwen3-reranker-0.6b": 0.333,
     "bge-reranker-v2-m3": 0.312,
-    "ms-marco-minilm-l6-v2": 0.324
+    "ms-marco-minilm-l6-v2": 0.324,
+    "zerank-1": 0.3396
   },
   "fiqa": {
     "bm25": 0.2485,
@@ -21,6 +23,7 @@
     "cohere": 0.4198,
     "qwen3-reranker-0.6b": 0.3801,
     "bge-reranker-v2-m3": 0.3724,
-    "ms-marco-minilm-l6-v2": 0.3355
+    "ms-marco-minilm-l6-v2": 0.3355,
+    "zerank-1": 0.392
   }
 }

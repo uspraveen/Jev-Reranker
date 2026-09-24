@@ -1,0 +1,43 @@
+=== frontier run (smoke=False, datasets=['scifact', 'nfcorpus', 'fiqa'], n=200, k=30) ===
+[scifact] corpus=5183 sampled_queries=200
+The CrossEncoder `automodel_args` argument was renamed and is now deprecated. Please use `model_kwargs` instead.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 8493.86it/s]
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights:   3%|▎         | 11/398 [00:00<00:03, 108.24it/s]Loading weights:  12%|█▏        | 48/398 [00:00<00:01, 250.22it/s]Loading weights:  21%|██        | 82/398 [00:00<00:01, 289.91it/s]Loading weights:  31%|███       | 124/398 [00:00<00:00, 334.11it/s]Loading weights:  40%|███▉      | 158/398 [00:00<00:00, 332.99it/s]Loading weights:  48%|████▊     | 192/398 [00:00<00:00, 313.89it/s]Loading weights:  58%|█████▊    | 229/398 [00:00<00:00, 330.17it/s]Loading weights:  67%|██████▋   | 268/398 [00:00<00:00, 347.38it/s]Loading weights:  78%|███████▊  | 312/398 [00:00<00:00, 369.35it/s]Loading weights:  89%|████████▉ | 356/398 [00:01<00:00, 387.20it/s]Loading weights: 100%|██████████| 398/398 [00:01<00:00, 347.03it/s]
+/home/praveen/jev-frontier/hf-cache/modules/transformers_modules/zeroentropy/zerank_hyphen_1_hyphen_reranker/d03c467e29e29c0a16a130a86ce3b62d30116a2c/modeling_zeranker.py:190: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  all_logits.extend([float(logit) / 5.0 for logit in yes_logits])
+[scifact] zerank-1: 25/200 (32s)
+[scifact] zerank-1: 50/200 (54s)
+[scifact] zerank-1: 75/200 (77s)
+[scifact] zerank-1: 100/200 (98s)
+[scifact] zerank-1: 125/200 (119s)
+[scifact] zerank-1: 150/200 (142s)
+[scifact] zerank-1: 175/200 (164s)
+[scifact] zerank-1: 200/200 (186s)
+[scifact] zerank-1: ndcg@10=0.7625 errors=0
+[nfcorpus] corpus=3633 sampled_queries=200
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 8442.44it/s]
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights:   3%|▎         | 11/398 [00:00<00:03, 108.05it/s]Loading weights:  12%|█▏        | 48/398 [00:00<00:01, 250.63it/s]Loading weights:  21%|██▏       | 85/398 [00:00<00:01, 300.30it/s]Loading weights:  31%|███▏      | 125/398 [00:00<00:00, 333.01it/s]Loading weights:  40%|███▉      | 159/398 [00:00<00:00, 327.74it/s]Loading weights:  48%|████▊     | 192/398 [00:00<00:00, 317.45it/s]Loading weights:  58%|█████▊    | 229/398 [00:00<00:00, 332.43it/s]Loading weights:  67%|██████▋   | 268/398 [00:00<00:00, 348.86it/s]Loading weights:  78%|███████▊  | 312/398 [00:00<00:00, 369.77it/s]Loading weights:  89%|████████▉ | 356/398 [00:01<00:00, 387.04it/s]Loading weights: 100%|██████████| 398/398 [00:01<00:00, 347.78it/s]
+[nfcorpus] zerank-1: 25/200 (27s)
+[nfcorpus] zerank-1: 50/200 (50s)
+[nfcorpus] zerank-1: 75/200 (73s)
+[nfcorpus] zerank-1: 100/200 (95s)
+[nfcorpus] zerank-1: 125/200 (117s)
+[nfcorpus] zerank-1: 150/200 (140s)
+[nfcorpus] zerank-1: 175/200 (162s)
+[nfcorpus] zerank-1: 200/200 (185s)
+[nfcorpus] zerank-1: ndcg@10=0.3396 errors=0
+[fiqa] corpus=57638 sampled_queries=200
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 8550.86it/s]
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights:  11%|█         | 42/398 [00:00<00:00, 414.59it/s]Loading weights:  21%|██        | 84/398 [00:00<00:00, 375.24it/s]Loading weights:  31%|███       | 124/398 [00:00<00:00, 383.04it/s]Loading weights:  41%|████      | 163/398 [00:00<00:00, 360.39it/s]Loading weights:  50%|█████     | 200/398 [00:00<00:00, 346.61it/s]Loading weights:  59%|█████▉    | 235/398 [00:00<00:00, 334.64it/s]Loading weights:  70%|██████▉   | 278/398 [00:00<00:00, 361.60it/s]Loading weights:  81%|████████  | 322/398 [00:00<00:00, 379.64it/s]Loading weights:  92%|█████████▏| 366/398 [00:00<00:00, 394.44it/s]Loading weights: 100%|██████████| 398/398 [00:01<00:00, 376.39it/s]
+[fiqa] zerank-1: 25/200 (19s)
+[fiqa] zerank-1: 50/200 (33s)
+[fiqa] zerank-1: 75/200 (49s)
+[fiqa] zerank-1: 100/200 (63s)
+[fiqa] zerank-1: 125/200 (78s)
+[fiqa] zerank-1: 150/200 (93s)
+[fiqa] zerank-1: 175/200 (109s)
+[fiqa] zerank-1: 200/200 (123s)
+[fiqa] zerank-1: ndcg@10=0.392 errors=0
+=== DONE ===

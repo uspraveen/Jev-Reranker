@@ -192,14 +192,22 @@ class CrossEncoderAdapter(BaseAdapter):
 
     name = "cross-encoder"
 
-    def __init__(self, model_name: str, batch_size: int = 32, max_length: int = 512) -> None:
+    def __init__(self, model_name: str, batch_size: int = 32, max_length: int = 512,
+                 trust_remote_code: bool = False, torch_dtype: str | None = None) -> None:
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.torch = torch
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(self.device)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=trust_remote_code)
+        dtype = getattr(torch, torch_dtype) if torch_dtype else None
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code, torch_dtype=dtype
+        ).to(self.device)
+        if getattr(self.model.config, "pad_token_id", None) is None:
+            # Qwen3-derived classifiers raise on batch>1 without a pad token id.
+            pad_id = self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None                 else self.tokenizer.eos_token_id
+            self.model.config.pad_token_id = pad_id
         self.model.eval()
         self.model_name = model_name
         self.name = model_name
@@ -264,6 +272,50 @@ class LlamaCppRerankAdapter(BaseAdapter):
         )
 
 
+class ZerankAdapter(BaseAdapter):
+    """zeroentropy zerank-1 via its own CrossEncoder.predict path.
+
+    The checkpoint stores no classification head — their remote code reads
+    yes/no token logits from the LM head (scaled /5). Feeding pairs through
+    plain AutoModelForSequenceClassification scores with a RANDOMLY
+    INITIALIZED head (verified: fresh-head warning + below-floor NDCG), so
+    this adapter must go through their predict(). Their 15k-token batch
+    budget OOMs a 46 GB card at fp32, so we monkey-patch the module constant
+    down and load bf16.
+    """
+
+    def __init__(self, model_name: str = "zeroentropy/zerank-1-reranker", token_budget: int = 3000) -> None:
+        import sys
+        import torch
+        from sentence_transformers import CrossEncoder
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = CrossEncoder(
+            model_name,
+            trust_remote_code=True,
+            device=device,
+            automodel_args={"torch_dtype": torch.bfloat16},
+        )
+        for mod in list(sys.modules.values()):
+            if hasattr(mod, "PER_DEVICE_BATCH_SIZE_TOKENS"):
+                mod.PER_DEVICE_BATCH_SIZE_TOKENS = token_budget
+        self.model_name = model_name
+        self.name = "zerank-1"
+        self.pairs = 0
+
+    def rerank(self, query: str, doc_ids: list[str], texts: list[str]) -> tuple[Scores, CallMeta]:
+        import time as _time
+
+        t0 = _time.perf_counter()
+        raw = self.model.predict([(query, t) for t in texts])
+        self.pairs += len(texts)
+        scores = Scores({d: float(v) for d, v in zip(doc_ids, raw, strict=True)})
+        return scores, CallMeta(
+            latency_ms=round((_time.perf_counter() - t0) * 1000, 2),
+            usage={"n_pairs": len(texts)},
+        )
+
+
 def build_adapters(
     systems: list[str],
     keys: dict[str, str],
@@ -291,6 +343,8 @@ def build_adapters(
             out.append(LlamaCppRerankAdapter("bge-reranker-v2-m3"))
         elif s == "qwen3-reranker-0.6b":
             out.append(Qwen3RerankAdapter("Qwen/Qwen3-Reranker-0.6B"))
+        elif s == "zerank-1":
+            out.append(ZerankAdapter("zeroentropy/zerank-1-reranker"))
         else:
             raise ValueError(f"unknown system {s!r}")
     return out

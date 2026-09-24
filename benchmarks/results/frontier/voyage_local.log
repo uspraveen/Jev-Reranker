@@ -19,3 +19,16 @@
 [nfcorpus] voyage-2.5: 25/200 (2620s)
 [nfcorpus] voyage-2.5: 50/200 (5245s)
 [nfcorpus] voyage-2.5: 75/200 (7871s)
+[nfcorpus] voyage-2.5: 100/200 (10496s)
+[nfcorpus] voyage-2.5: 125/200 (19003s)
+[nfcorpus] voyage-2.5: 150/200 (21628s)
+[nfcorpus] voyage-2.5: 175/200 (24253s)
+[nfcorpus] voyage-2.5: 200/200 (26879s)
+[nfcorpus] voyage-2.5: ndcg@10=None errors=200
+[fiqa] corpus=57638 sampled_queries=200
+[fiqa] voyage-2.5: 25/200 (1197s)
+[fiqa] voyage-2.5: 50/200 (2457s)
+[fiqa] voyage-2.5: 75/200 (4153s)
+[fiqa] voyage-2.5: 100/200 (5544s)
+[fiqa] voyage-2.5: 125/200 (7014s)
+[fiqa] voyage-2.5: 150/200 (8481s)

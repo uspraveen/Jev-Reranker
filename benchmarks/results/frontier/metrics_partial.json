@@ -6,5 +6,17 @@
       "latency_ms_p95": 0.0,
       "usage_totals": {}
     }
+  },
+  "nfcorpus": {
+    "voyage-2.5": {
+      "n": 0,
+      "ndcg_cut_10_mean": null,
+      "ndcg_cut_10_std": 0.0,
+      "recall_10_mean": null,
+      "errors": 200,
+      "latency_ms_p50": 0.0,
+      "latency_ms_p95": 0.0,
+      "usage_totals": {}
+    }
   }
 }

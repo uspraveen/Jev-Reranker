@@ -34,21 +34,20 @@ Charts are regenerated from the committed per-query rows by
 
 ## NDCG@10 (n=200 per dataset)
 
-| dataset | BM25 (floor) | **Jev-Reranker** | Cohere rerank-v4.0-pro | Qwen3-Reranker-0.6B | BGE-reranker-v2-m3 | MiniLM-L6 |
-|---|---|---|---|---|---|---|
-| scifact | 0.6788 | **0.7841** | 0.7728 | 0.7485 | 0.7328 | 0.6861 |
-| nfcorpus | 0.3019 | **0.3426** | 0.3346 | 0.3330 | 0.3120 | 0.3240 |
-| fiqa | 0.2485 | 0.4069 | **0.4198** | 0.3801 | 0.3724 | 0.3355 |
-| **3-set average** | 0.4097 | **0.5112** | 0.5091 | 0.4872 | 0.4724 | 0.4485 |
+| dataset | BM25 (floor) | **Jev-Reranker** | Cohere v4.0-pro | zerank-1 | Qwen3-0.6B | BGE-v2-m3 | MiniLM-L6 |
+|---|---|---|---|---|---|---|---|
+| scifact | 0.6788 | **0.7841** | 0.7728 | 0.7625 | 0.7485 | 0.7328 | 0.6861 |
+| nfcorpus | 0.3019 | **0.3426** | 0.3346 | 0.3396 | 0.3330 | 0.3120 | 0.3240 |
+| fiqa | 0.2485 | 0.4069 | **0.4198** | 0.3920 | 0.3801 | 0.3724 | 0.3355 |
+| **3-set average** | 0.4097 | **0.5112** | 0.5091 | 0.4980 | 0.4872 | 0.4724 | 0.4485 |
 
-Jev wins 2 of 3 datasets and the average; Cohere's flagship wins fiqa; the
-open-weights pair trails both, and the industry-default cheap reranker
-(MiniLM-L6, 33M params) trails everything on quality while being the
-latency king (33 ms). With n=200 per dataset, small differences are within
-subsample noise — the honest reading is **parity with the flagship on
-relevance ranking, from a general-purpose decision model asked explicit
-questions, zero-shot** (no relevance-training exposure), at p50 ≈ 0.2 s per
-query (30 candidates, one API call).
+Jev wins 2 of 3 datasets and the average; Cohere's flagship wins fiqa; zerank-1
+is the strongest open-weights model, and it too trails Jev on 2 of 3 datasets.
+With n=200 per dataset, small differences are within subsample noise — the
+honest reading is **parity with the flagship on relevance ranking, from a
+general-purpose decision model asked explicit questions, zero-shot** (no
+relevance-training exposure), at p50 ≈ 0.2-0.5 s per query (30 candidates, one
+API call).
 
 A score-tie diagnostic (ties broken by policy-value order and by BM25 order)
 changed nothing (±0.0000 NDCG on all datasets): Jev's Score answers are
@@ -56,24 +55,37 @@ quasi-continuous (e.g. 2.8/3), so tie-handling is not a factor here.
 
 ## Latency per query
 
-Measured per query in every committed row (p50 over n=600 per system):
+Measured per query in every committed row (p50 over n=600 per system unless
+noted):
 
 | system | p50 | where measured |
 |---|---|---|
 | MiniLM-L6 (33M, on-GPU) | 33 ms | GPU node, local |
-| **Jev-Reranker (API)** | **199.5 ms** (p95 291) | sandbox → api.typesafe.ai |
 | Qwen3-0.6B (on-GPU) | 233.9 ms | GPU node, local |
 | BGE-v2-m3 (on-GPU) | 354.1 ms | GPU node, local |
-| Cohere v4.0-pro (API) | ~499 ms | unpaced 5-call spot-check, laptop → api.cohere.com |
+| zerank-1 4B (on-GPU, bf16) | ~500 ms/query-class | GPU node, local |
+| **Jev-Reranker (API)** | **218 ms** (p95 291; second window 502) | sandbox / GPU-server → api.typesafe.ai |
+| Cohere v4.0-pro (API) | ~611 ms | **same vantage as Jev** (GPU-server → api.cohere.com, rotating live queries, n=10) |
 
-Two honesty notes: (1) Cohere's wall time inside the benchmark run is
-**not** usable — the trial-key throttle (7 s between calls) sat inside the
-timing window (p50 7001 ms), so the service number above comes from a tiny
-unpaced spot-check from a different vantage; (2) hosted lanes include one
-network round-trip, GPU lanes are on-node compute — treat cross-vantage
-gaps as directional. Within the hosted pair (same sandbox, same vantage),
-Jev is ~2.5× faster than Cohere's flagship while leading it on 2 of 3
-datasets.
+The fairest latency comparison is the **same-vantage pair**: Jev and Cohere
+re-measured back-to-back from one box, rotating live queries, zero cache hits
+(`calls_made=10, cache_hits=0` verified): Jev p50 218-502 ms across two
+measurement windows vs Cohere 611 ms (p95 806) — Jev faster in both windows
+while leading on 2 of 3 datasets. Jev also serves **cache hits at ~1.3 ms**
+for repeated queries (vs 2 ms measured) — shown for product context, excluded
+from the comparison. Cohere's wall time inside the throttled benchmark run is
+not a service-latency number and is not quoted. Open-weights on-GPU lanes are
+on-node compute; cross-vantage gaps are directional only.
+
+### Self-hosting zerank-1 warning
+
+zerank-1 must be served through its own remote-code `predict()` path (chat
+template: query as system message, document as user message, then yes/no LM
+logits ÷ 5). Loading it via plain `AutoModelForSequenceClassification`
+silently creates a **randomly initialized score head** — it runs without
+errors and scores *below the BM25 floor* (we measured NDCG@10 0.077-0.208
+that way before catching it). Their default 15k-token batch budget also OOMs
+a 46 GB card; batch the chat-templated inputs small.
 
 ## Why BM25 is in the table (and why it isn't a "reranker")
 
