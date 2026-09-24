@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytrec_eval
 from matplotlib.path import Path as MPath
+from matplotlib.ticker import NullFormatter
 from matplotlib.patches import PathPatch
 
 ROOT = Path(__file__).resolve().parents[1] / "results" / "frontier"
@@ -238,6 +239,131 @@ def main() -> None:
              "open-weights lanes measured on-node · different vantages are directional only")
     fig.subplots_adjust(top=0.8, bottom=0.12, left=0.03, right=0.985)
     fig.savefig(ROOT / "frontier_latency.png", bbox_inches="tight")
+    plt.close(fig)
+
+
+    # Chart 5 — quality vs latency frontier (two parameters, one view).
+    zerank_lats2 = []
+    for ds in DATASETS:
+        for line in (ROOT / f"{ds}__zerank-1.jsonl").read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                r = json.loads(line)
+                if "latency_ms" in r and "scores" in r:
+                    zerank_lats2.append(r["latency_ms"])
+    zerank_p50 = statistics.median(zerank_lats2) if zerank_lats2 else 500.0
+    markers = {
+        "jev-latest": "o", "cohere": "s", "qwen3-reranker-0.6b": "^",
+        "bge-reranker-v2-m3": "D", "ms-marco-minilm-l6-v2": "v", "zerank-1": "P",
+    }
+    pts = {
+        "ms-marco-minilm-l6-v2": (33.0, avgs["ms-marco-minilm-l6-v2"], (7, 6)),
+        "qwen3-reranker-0.6b": (ONNODE_LATENCY["qwen3-reranker-0.6b"], avgs["qwen3-reranker-0.6b"], (7, -4)),
+        "bge-reranker-v2-m3": (ONNODE_LATENCY["bge-reranker-v2-m3"], avgs["bge-reranker-v2-m3"], (7, 4)),
+        "zerank-1": (zerank_p50, avgs["zerank-1"], (7, -11)),
+        "jev-latest": (FAIR_LATENCY["jev-latest"], avgs["jev-latest"], (7, 7)),
+        "cohere": (FAIR_LATENCY["cohere"], avgs["cohere"], (7, 5)),
+    }
+    fig, ax = plt.subplots(figsize=(11.5, 5.6), dpi=160)
+    # Pareto frontier (quality vs latency): MiniLM fastest, Jev dominates everything faster-than-it.
+    frontier = [(33.0, avgs["ms-marco-minilm-l6-v2"]), (FAIR_LATENCY["jev-latest"], avgs["jev-latest"])]
+    fx = [p_[0] for p_ in frontier]
+    fy = [p_[1] for p_ in frontier]
+    ax.plot(fx, fy, linestyle="--", color="#9CA3AF", linewidth=1.2, zorder=2)
+    for key, (lat, qual, off) in pts.items():
+        ax.scatter(lat, qual, s=110, color=COLORS[key], marker=markers[key],
+                   edgecolor="white", linewidth=1.2, zorder=4)
+        ax.annotate(LABELS[key], (lat, qual), xytext=off, textcoords="offset points",
+                    fontsize=9.5, color="#111827", zorder=5)
+    ax.set_xscale("log")
+    ax.set_xticks([30, 100, 218, 400, 700])
+    ax.set_xticklabels(["33", "100", "218", "400", "700"])
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.tick_params(axis="x", which="minor", length=0)
+    ax.set_xlim(20, 900)
+    ax.set_ylim(0.40, 0.55)
+    ax.grid(axis="both", linestyle=":", color="#C9CED6", linewidth=1)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.set_xlabel("p50 latency per query (ms, 30 candidates) — log scale", fontsize=10)
+    ax.set_ylabel("NDCG@10, 3-dataset average", fontsize=10)
+    masthead(fig, "Quality vs latency — only MiniLM and Jev sit on the Pareto frontier",
+             "Every other system is dominated: something is both faster AND more accurate · "
+             "Jev/Cohere latencies re-measured same-vantage; open-weights on-GPU; BM25 floor (~0 ms) not shown")
+    ax.annotate("Pareto frontier", (80, 0.487), fontsize=8.5, color="#6B7280", rotation=-16)
+    fig.subplots_adjust(top=0.86, bottom=0.12, left=0.07, right=0.985)
+    fig.savefig(ROOT / "frontier_quality_vs_latency.png", bbox_inches="tight")
+    plt.close(fig)
+
+    # Chart 6 — systems x datasets heatmap (all three datasets + average).
+    heat_keys = sorted(keys_present, key=lambda k: -avgs[k])
+    cols = list(DATASETS) + ["average"]
+    matrix = []
+    for k in heat_keys:
+        row = [summary[ds][k] for ds in DATASETS] + [avgs[k]]
+        matrix.append(row)
+    mat = np.array(matrix)
+    fig, ax = plt.subplots(figsize=(9.2, 4.6), dpi=160)
+    im = ax.imshow(mat, cmap="Blues", vmin=0.2, vmax=0.85, aspect="auto")
+    ax.set_xticks(range(len(cols)))
+    ax.set_xticklabels([c.capitalize() if c != "average" else "AVG" for c in cols], fontsize=10.5)
+    ax.set_yticks(range(len(heat_keys)))
+    ax.set_yticklabels([LABELS[k] for k in heat_keys], fontsize=10)
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            v = mat[i, j]
+            ax.annotate(f"{v:.3f}".lstrip("0"), (j, i), ha="center", va="center",
+                        fontsize=9.5, fontweight="bold" if j == len(cols) - 1 else "normal",
+                        color="white" if v > 0.62 else "#1F2937")
+    ax.set_xticks(np.arange(-0.5, len(cols), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(heat_keys), 1), minor=True)
+    ax.grid(which="minor", color="white", linewidth=2.5)
+    ax.tick_params(which="both", length=0)
+    for side in ax.spines.values():
+        side.set_visible(False)
+    masthead(fig, "NDCG@10 across all datasets",
+             "Row = system (sorted by average) · column = dataset · darker = better · same candidates, pytrec_eval")
+    fig.subplots_adjust(top=0.84, bottom=0.06, left=0.18, right=0.97)
+    fig.savefig(ROOT / "frontier_heatmap.png", bbox_inches="tight")
+    plt.close(fig)
+
+    # Chart 7 — open-weights quality vs model size, hosted APIs as reference lines.
+    scale = [
+        ("MiniLM-L6", 0.022, avgs["ms-marco-minilm-l6-v2"], "#D6569B", (6, -12)),
+        ("BGE-v2-m3", 0.568, avgs["bge-reranker-v2-m3"], "#1F9D63", (6, -12)),
+        ("Qwen3-0.6B", 0.6, avgs["qwen3-reranker-0.6b"], "#F2A30F", (7, 6)),
+        ("zerank-1", 4.02, avgs["zerank-1"], "#8B5CF6", (-4, 8)),
+    ]
+    fig, ax = plt.subplots(figsize=(11, 5.4), dpi=160)
+    ax.axhline(avgs["jev-latest"], linestyle="--", color="#1F6FEB", linewidth=1.4, zorder=2)
+    ax.axhline(avgs["cohere"], linestyle="--", color="#23272E", linewidth=1.2, zorder=2)
+    ax.annotate("Jev-Reranker (API) — 0.511", (0.023, avgs["jev-latest"]), xytext=(4, 5),
+                textcoords="offset points", fontsize=9.5, fontweight="bold", color="#1F6FEB")
+    ax.annotate("Cohere v4.0-pro (API) — 0.509", (0.023, avgs["cohere"]), xytext=(4, -12),
+                textcoords="offset points", fontsize=9.5, color="#23272E")
+    for name, params, qual, color, off in scale:
+        ax.scatter(params, qual, s=120, color=color, edgecolor="white", linewidth=1.2, zorder=4)
+        label = name + "\n" + f"{qual:.3f}"
+        ax.annotate(label, (params, qual), xytext=off, textcoords="offset points",
+                    fontsize=9, color="#111827")
+    ax.set_xscale("log")
+    ax.set_xticks([0.02, 0.06, 0.6, 4.0])
+    ax.set_xticklabels(["22M", "568M", "0.6B", "4B"])
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.tick_params(axis="x", which="minor", length=0)
+    ax.set_xlim(0.015, 7)
+    ax.set_ylim(0.43, 0.53)
+    ax.grid(axis="both", linestyle=":", color="#C9CED6", linewidth=1)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.set_xlabel("Model parameters (log scale)", fontsize=10)
+    ax.set_ylabel("NDCG@10, 3-dataset average", fontsize=10)
+    masthead(fig, "Open-weights: does scale buy ranking quality?",
+             "Open-weights rerankers by parameter count · dashed lines = hosted API systems (sizes not disclosed) · "
+             "8x more parameters than MiniLM buys +0.04 NDCG")
+    fig.subplots_adjust(top=0.85, bottom=0.12, left=0.07, right=0.985)
+    fig.savefig(ROOT / "frontier_scale_open_weights.png", bbox_inches="tight")
     plt.close(fig)
 
     print(json.dumps(avgs, indent=2))

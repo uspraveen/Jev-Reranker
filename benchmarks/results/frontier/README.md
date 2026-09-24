@@ -12,6 +12,12 @@ per-query rows are committed next to this file (`<dataset>__<system>.jsonl`).
 
 ![Lift over BM25](frontier_lift_over_bm25.png)
 
+![Quality vs latency](frontier_quality_vs_latency.png)
+
+![Heatmap](frontier_heatmap.png)
+
+![Open-weights scale](frontier_scale_open_weights.png)
+
 Charts are regenerated from the committed per-query rows by
 `python -m benchmarks.frontier.make_visuals` (also writes
 `frontier_summary.json`).

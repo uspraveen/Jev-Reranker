@@ -112,6 +112,10 @@ protocol, and reproduction steps in
 
 ![Latency](benchmarks/results/frontier/frontier_latency.png)
 
+![Quality vs latency frontier](benchmarks/results/frontier/frontier_quality_vs_latency.png)
+
+![NDCG heatmap](benchmarks/results/frontier/frontier_heatmap.png)
+
 ## Generic use: any retrieval project
 
 The policy math is domain-agnostic; the *questions* encode what your domain
