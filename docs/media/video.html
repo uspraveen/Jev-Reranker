@@ -248,7 +248,7 @@ function render(t) {
   }
 }
 
-/* ---------- scene 5 · measured (27.5 - 34) ---------- */
+/* ---------- scene 5 - measured (27.5 - 34) ---------- */
 {
   const vis = seg(t, 27.4, 0.6) * (1 - seg(t, 33.6, 0.5));
   if (vis > 0) {
@@ -257,75 +257,154 @@ function render(t) {
     show(el(head, "div", { className: "big", marginTop: "16px" },
          "Same candidates. Same evaluator. Same vantage."), vis, 0, (1 - vis) * -30);
 
-    // plot area
-    const px = 200, py = 260, pw = 1050, ph = 560;
+    const px = 180, py = 275, pw = 1150, ph = 555;
+    const X = l => (Math.log10(l) - Math.log10(25)) / (Math.log10(750) - Math.log10(25)) * pw;
+    const Y = q => ph - (q - 0.40) / (0.15) * ph;
     const plot = el(stage, "div", { left: px + "px", top: py + "px", width: pw + "px", height: ph + "px" });
+    const po = eo(seg(t, 27.8, 0.7));
+    show(plot, po, (1 - po) * 50, 0);
+
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("width", pw); svg.setAttribute("height", ph);
     plot.appendChild(svg);
-    const X = l => px + (Math.log10(l) - Math.log10(25)) / (Math.log10(750) - Math.log10(25)) * pw;
-    const Y = q => py + ph - (q - 0.40) / (0.55 - 0.40) * ph;
-    // gridlines
+    const defs = document.createElementNS(svgNS, "defs");
+    defs.innerHTML = '<radialGradient id="jg"><stop offset="0%" stop-color="#4A9EFF" stop-opacity="0.5"/>'
+      + '<stop offset="100%" stop-color="#4A9EFF" stop-opacity="0"/></radialGradient>';
+    svg.appendChild(defs);
+
+    // ideal corner: lower latency, higher quality (fades in, then Jev's home)
+    const io = eo(seg(t, 28.9, 0.7)) * vis;
+    const idealW = X(360), idealH = Y(0.498);
+    const ideal = document.createElementNS(svgNS, "rect");
+    ideal.setAttribute("x", 0); ideal.setAttribute("y", 0);
+    ideal.setAttribute("width", idealW); ideal.setAttribute("height", idealH);
+    ideal.setAttribute("fill", "rgba(74,158,255,0.06)");
+    ideal.setAttribute("stroke", "rgba(74,158,255,0.4)");
+    ideal.setAttribute("stroke-dasharray", "6 7");
+    ideal.setAttribute("opacity", io * 0.9);
+    svg.appendChild(ideal);
+    const idealLbl = el(stage, "div", { left: (px + 18) + "px", top: (py + 16) + "px" }, "");
+    el(idealLbl, "div", { fontSize: "20px", fontWeight: "600", color: "#7C93B8" }, "ideal corner");
+    el(idealLbl, "div", { fontSize: "17px", color: "#5B6E8F", marginTop: "4px" }, "lower latency, higher quality");
+    show(idealLbl, io, 0, (1 - io) * -10);
+
+    // gridlines + ticks
     [0.42, 0.45, 0.48, 0.51, 0.54].forEach(g => {
       const l = document.createElementNS(svgNS, "line");
       l.setAttribute("x1", 0); l.setAttribute("x2", pw);
-      l.setAttribute("y1", Y(g) - py); l.setAttribute("y2", Y(g) - py);
+      l.setAttribute("y1", Y(g)); l.setAttribute("y2", Y(g));
       l.setAttribute("stroke", "#1E2430"); l.setAttribute("stroke-dasharray", "3 6");
       svg.appendChild(l);
-      const lbl = el(stage, "div", { left: (px - 74) + "px", top: (Y(g) - 14) + "px", width: "60px",
+      const lbl = el(stage, "div", { left: (px - 74) + "px", top: (py + Y(g) - 14) + "px", width: "60px",
         textAlign: "right", fontSize: "20px", color: "#5B647A" }, g.toFixed(2));
       show(lbl, vis);
     });
     [33, 100, 218, 400, 700].forEach(ms => {
       const l = document.createElementNS(svgNS, "line");
-      l.setAttribute("x1", X(ms) - px); l.setAttribute("x2", X(ms) - px);
+      l.setAttribute("x1", X(ms)); l.setAttribute("x2", X(ms));
       l.setAttribute("y1", 0); l.setAttribute("y2", ph);
       l.setAttribute("stroke", "#1E2430"); l.setAttribute("stroke-dasharray", "3 6");
       svg.appendChild(l);
-      const lbl = el(stage, "div", { left: (X(ms) - 30) + "px", top: (py + ph + 12) + "px", width: "60px",
+      const lbl = el(stage, "div", { left: (px + X(ms) - 30) + "px", top: (py + ph + 14) + "px", width: "60px",
         textAlign: "center", fontSize: "20px", color: "#5B647A" }, ms);
       show(lbl, vis);
     });
-    // pareto dashed line MiniLM -> Jev
+
+    // pareto dashed line MiniLM -> Jev (draws in)
+    const paretoO = eo(seg(t, 29.9, 0.6)) * vis;
     const pl = document.createElementNS(svgNS, "line");
-    pl.setAttribute("x1", X(33) - px); pl.setAttribute("y1", Y(0.4485) - py);
-    pl.setAttribute("x2", X(218) - px); pl.setAttribute("y2", Y(0.5112) - py);
-    pl.setAttribute("stroke", "#6B7280"); pl.setAttribute("stroke-dasharray", "8 8"); pl.setAttribute("stroke-width", "2");
+    pl.setAttribute("x1", X(33)); pl.setAttribute("y1", Y(0.4485));
+    pl.setAttribute("x2", X(218)); pl.setAttribute("y2", Y(0.5112));
+    pl.setAttribute("stroke", "#6B7280"); pl.setAttribute("stroke-dasharray", "8 8");
+    pl.setAttribute("stroke-width", "2"); pl.setAttribute("opacity", paretoO);
     svg.appendChild(pl);
-    // points
-    RERANK.forEach((s, i) => {
-      const o = eo(seg(t, 28.4 + i * 0.32, 0.5)) * vis;
-      const pt = document.createElementNS(svgNS, "circle");
-      pt.setAttribute("cx", X(s.lat) - px); pt.setAttribute("cy", Y(s.q) - py);
-      pt.setAttribute("r", 13); pt.setAttribute("fill", s.c);
-      if (s.edge) pt.setAttribute("stroke", s.edge), pt.setAttribute("stroke-width", 1.5);
-      pt.setAttribute("opacity", o);
-      svg.appendChild(pt);
-      const lb = el(stage, "div", { left: (X(s.lat) + 18) + "px", top: (Y(s.q) - 16) + "px",
-        fontSize: "23px", fontWeight: "600", color: i === 0 ? "#4A9EFF" : "#C6CEDA" }, s.name);
-      show(lb, o);
+
+    // points: staggered fly-in from the right, labels placed to fit
+    const pts = [
+      { k: "MiniLM-L6 (open)", lat: 33, q: 0.4485, c: "#D6569B", side: "right", at: 28.5 },
+      { k: "Qwen3-0.6B (open)", lat: 234, q: 0.4872, c: "#F2A30F", side: "right", at: 28.9 },
+      { k: "BGE-v2-m3 (open)", lat: 354, q: 0.4724, c: "#1F9D63", side: "right", at: 29.2 },
+      { k: "zerank-1 (open)", lat: 500, q: 0.4980, c: "#A78BFA", side: "left", at: 29.5 },
+      { k: "Cohere v4.0-pro", lat: 611, q: 0.5091, c: "#4B5563", side: "left", at: 29.8 },
+    ];
+    pts.forEach(pt => {
+      const o = eo(seg(t, pt.at, 0.5)) * vis;
+      const slide = (1 - o) * 46;
+      const c = document.createElementNS(svgNS, "circle");
+      c.setAttribute("cx", X(pt.lat)); c.setAttribute("cy", Y(pt.q));
+      c.setAttribute("r", 12); c.setAttribute("fill", pt.c);
+      c.setAttribute("opacity", o);
+      c.setAttribute("transform", "translate(" + slide + ", 0)");
+      svg.appendChild(c);
+      if (pt.side === "left") {
+        const lb = el(stage, "div", { left: "0px", top: (py + Y(pt.q) - 15) + "px",
+          width: (px + X(pt.lat) - 26) + "px", textAlign: "right" }, "");
+        el(lb, "div", { fontSize: "23px", fontWeight: "600", color: "#C6CEDA" }, pt.k);
+        show(lb, o);
+      } else {
+        const lb = el(stage, "div", { left: (px + X(pt.lat) + 20) + "px",
+          top: (py + Y(pt.q) - 15) + "px" }, "");
+        el(lb, "div", { fontSize: "23px", fontWeight: "600", color: "#C6CEDA" }, pt.k);
+        show(lb, o);
+      }
     });
 
-    // right column numbers
-    const nums = el(stage, "div", { left: "1360px", top: "270px", width: "420px" }, "");
+    // Jev: beacon rings + glow + label (the hero of this scene)
+    const jx = X(218), jy = Y(0.5112);
+    const jIn = eo(seg(t, 30.1, 0.55)) * vis;
+    const glow = document.createElementNS(svgNS, "circle");
+    glow.setAttribute("cx", jx); glow.setAttribute("cy", jy); glow.setAttribute("r", 34);
+    glow.setAttribute("fill", "url(#jg)");
+    glow.setAttribute("opacity", jIn);
+    svg.appendChild(glow);
+    const jpt = document.createElementNS(svgNS, "circle");
+    jpt.setAttribute("cx", jx); jpt.setAttribute("cy", jy);
+    jpt.setAttribute("r", 14); jpt.setAttribute("fill", "#1F6FEB");
+    jpt.setAttribute("stroke", "#E5E7EB"); jpt.setAttribute("stroke-width", "2");
+    jpt.setAttribute("opacity", jIn);
+    svg.appendChild(jpt);
+    if (t > 30.7) {
+      for (let k = 0; k < 2; k++) {
+        const ph_ = ((t - 30.7) / 1.9 + k * 0.5) % 1;
+        const ring = document.createElementNS(svgNS, "circle");
+        ring.setAttribute("cx", jx); ring.setAttribute("cy", jy);
+        ring.setAttribute("r", 14 + 36 * ph_);
+        ring.setAttribute("fill", "none");
+        ring.setAttribute("stroke", "#4A9EFF");
+        ring.setAttribute("stroke-width", (2.5 * (1 - ph_)).toFixed(2));
+        ring.setAttribute("opacity", ((1 - ph_) * 0.55 * vis).toFixed(3));
+        svg.appendChild(ring);
+      }
+    }
+    const jlb = el(stage, "div", { left: (px + jx - 110) + "px", top: (py + jy - 64) + "px",
+      width: "220px", textAlign: "center" }, "");
+    el(jlb, "div", { fontSize: "24px", fontWeight: "700", color: "#4A9EFF" }, "Jev-Reranker");
+    el(jlb, "div", { fontSize: "18px", color: "#7C93B8", marginTop: "2px" }, "218 ms - in the ideal corner");
+    show(jlb, jIn, 0, (1 - jIn) * -12);
+
+    // right column: count-up stats (past the plot edge, no overlap)
+    const nums = el(stage, "div", { left: "1408px", top: "300px", width: "420px" }, "");
     const rows = [
-      ["Jev-Reranker", "0.511", C.blue],
-      ["Cohere v4.0-pro", "0.509", "#9CA3AF"],
-      ["best open (zerank-1)", "0.498", C.purple],
-      ["BM25 floor", "0.410", "#4B5563"],
+      ["Jev-Reranker", 0.511, "#4A9EFF", "avg NDCG@10, 3 datasets"],
+      ["Cohere v4.0-pro", 0.509, "#9CA3AF", "flagship, trial key"],
+      ["zerank-1 (open, 4B)", 0.498, "#A78BFA", "best open-weights"],
+      ["BM25 floor", 0.410, "#4B5563", "retrieval only"],
     ];
     rows.forEach((r, i) => {
-      const o = eo(seg(t, 29.2 + i * 0.3, 0.5)) * vis;
-      const n = el(nums, "div", { marginBottom: "30px" });
+      const o = eo(seg(t, 29.0 + i * 0.3, 0.8)) * vis;
+      const n = el(nums, "div", { marginBottom: "36px" });
       show(n, o, (1 - o) * 30, 0);
-      el(n, "div", { fontSize: "44px", fontWeight: "700", color: r[2] }, r[1]);
-      el(n, "div", { fontSize: "22px", color: "#8FA3BF", marginTop: "2px" }, r[0] + "  \u00B7 avg NDCG@10");
+      const cu = (r[1] * eo(seg(t, 29.0 + i * 0.3, 0.8))).toFixed(3);
+      el(n, "div", { fontSize: "50px", fontWeight: "700", color: r[2], lineHeight: "1.05" }, cu);
+      el(n, "div", { fontSize: "21px", color: "#8FA3BF", marginTop: "4px" }, r[0] + "  -  " + r[3]);
     });
-    const foot = el(stage, "div", { left: "1360px", top: "700px", width: "430px", fontSize: "21px",
-      lineHeight: "1.5", color: "#6B7280" },
-      "mini-study: 3 BEIR datasets, n = 200 each, identical candidate pool, pytrec_eval");
-    show(foot, eo(seg(t, 30.8, 0.6)) * vis);
+
+    // footnote: bottom-left, clear of everything
+    const foot = el(stage, "div", { left: "180px", top: (py + ph + 64) + "px", width: "1350px",
+      fontSize: "21px", lineHeight: "1.5", color: "#6B7280" },
+      "mini-study: 3 BEIR datasets, n = 200 each, identical candidate pool for every system, pytrec_eval");
+    show(foot, eo(seg(t, 31.2, 0.6)) * vis);
   }
 }
 
