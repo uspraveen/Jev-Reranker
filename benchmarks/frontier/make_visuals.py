@@ -27,7 +27,19 @@ SYSTEMS = (
     ("cohere", "Cohere v4.0-pro", "#8E8E8E"),
     ("qwen3-reranker-0.6b", "Qwen3-0.6B (open)", "#C9A227"),
     ("bge-reranker-v2-m3", "BGE-v2-m3 (open)", "#7A9E7E"),
+    ("ms-marco-minilm-l6-v2", "MiniLM-L6 (open)", "#B07A99"),
 )
+# Measured latency per query (p50, ms) with measurement vantage; Cohere's
+# benchmark-run wall time was polluted by trial-key throttling, so its bar
+# uses a 5-call unpaced spot-check from a different vantage (laptop).
+LATENCY = (
+    ("jev-latest", 199.5, "sandbox → API"),
+    ("cohere", 499.0, "laptop → API (spot-check n=5)"),
+    ("qwen3-reranker-0.6b", 233.9, "on-GPU"),
+    ("bge-reranker-v2-m3", 354.1, "on-GPU"),
+    ("ms-marco-minilm-l6-v2", None, "on-GPU"),
+)
+LATENCY_MINILM = None  # filled from rows below
 
 plt.rcParams.update({
     "font.size": 11,
@@ -68,6 +80,19 @@ def main() -> None:
             summary[ds][key] = round(statistics.fmean(vals), 4)
             per_query[ds][key] = vals
     (ROOT / "frontier_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    global LATENCY_MINILM
+    minilm_lats = []
+    for ds in DATASETS:
+        rows = load_rows(ROOT / f"{ds}__ms-marco-minilm-l6-v2.jsonl")
+        rows2 = []
+        for line in (ROOT / f"{ds}__ms-marco-minilm-l6-v2.jsonl").read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                r = json.loads(line)
+                if "latency_ms" in r and "scores" in r:
+                    rows2.append(r["latency_ms"])
+        minilm_lats += rows2
+    LATENCY_MINILM = round(statistics.median(minilm_lats), 1) if minilm_lats else None
 
     # Chart 1 — grouped bars per dataset.
     fig, ax = plt.subplots(figsize=(10.5, 5.2), dpi=160)
@@ -139,6 +164,36 @@ def main() -> None:
     ax.legend(frameon=False, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.08), fontsize=9)
     fig.tight_layout()
     fig.savefig(ROOT / "frontier_lift_over_bm25.png", bbox_inches="tight")
+    plt.close(fig)
+
+    # Chart 4 — latency per query (p50), vantage-annotated.
+    import numpy as np2
+
+    lat_entries = []
+    for key, p50, vantage in LATENCY:
+        if key == "ms-marco-minilm-l6-v2":
+            p50 = LATENCY_MINILM
+        if p50 is not None:
+            lat_entries.append((key, p50, vantage))
+    lat_entries.sort(key=lambda e: e[1])
+    fig, ax = plt.subplots(figsize=(9.5, 4.6), dpi=160)
+    labels = {k: l for k, l, _ in SYSTEMS}
+    names = [labels[k] + "\n(" + v + ")" for k, _, v in lat_entries]
+    vals = [v for _, v, _ in lat_entries]
+    colors = [dict((k, c) for k, _, c in SYSTEMS)[k] for k, _, _ in lat_entries]
+    bars = ax.bar(names, vals, color=colors, width=0.6,
+                  edgecolor=["#333333" if k == "jev-latest" else "none" for k, _, _ in lat_entries],
+                  linewidth=[1.4 if k == "jev-latest" else 0 for k, _, _ in lat_entries])
+    for b, v in zip(bars, vals, strict=True):
+        ax.annotate(f"{v:.0f} ms", (b.get_x() + b.get_width() / 2, v), ha="center", va="bottom",
+                    fontsize=9.5, fontweight="bold", color="#333333")
+    ax.set_ylabel("p50 latency per query (ms, 30 candidates)")
+    ax.set_title("Latency per query — Cohere bar is an unpaced spot-check (the throttled benchmark\n"
+                 "run is not latency-comparable); GPU lanes measured on-node; vantages differ",
+                 fontsize=11)
+    ax.set_ylim(0, max(vals) * 1.18)
+    fig.tight_layout()
+    fig.savefig(ROOT / "frontier_latency.png", bbox_inches="tight")
     plt.close(fig)
 
     print(json.dumps(avgs, indent=2))

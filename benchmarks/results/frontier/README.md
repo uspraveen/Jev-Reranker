@@ -34,23 +34,56 @@ Charts are regenerated from the committed per-query rows by
 
 ## NDCG@10 (n=200 per dataset)
 
-| dataset | BM25 (floor) | **Jev-Reranker** | Cohere rerank-v4.0-pro | Qwen3-Reranker-0.6B | BGE-reranker-v2-m3 |
-|---|---|---|---|---|---|
-| scifact | 0.6788 | **0.7841** | 0.7728 | 0.7485 | 0.7328 |
-| nfcorpus | 0.3019 | **0.3426** | 0.3346 | 0.3330 | 0.3120 |
-| fiqa | 0.2485 | 0.4069 | **0.4198** | 0.3801 | 0.3724 |
-| **3-set average** | 0.4097 | **0.5112** | 0.5091 | 0.4872 | 0.4724 |
+| dataset | BM25 (floor) | **Jev-Reranker** | Cohere rerank-v4.0-pro | Qwen3-Reranker-0.6B | BGE-reranker-v2-m3 | MiniLM-L6 |
+|---|---|---|---|---|---|---|
+| scifact | 0.6788 | **0.7841** | 0.7728 | 0.7485 | 0.7328 | 0.6861 |
+| nfcorpus | 0.3019 | **0.3426** | 0.3346 | 0.3330 | 0.3120 | 0.3240 |
+| fiqa | 0.2485 | 0.4069 | **0.4198** | 0.3801 | 0.3724 | 0.3355 |
+| **3-set average** | 0.4097 | **0.5112** | 0.5091 | 0.4872 | 0.4724 | 0.4485 |
 
 Jev wins 2 of 3 datasets and the average; Cohere's flagship wins fiqa; the
-open-weights pair trails both. With n=200 per dataset, small differences are
-within subsample noise — the honest reading is **parity with the flagship
-on relevance ranking, from a general-purpose decision model asked explicit
+open-weights pair trails both, and the industry-default cheap reranker
+(MiniLM-L6, 33M params) trails everything on quality while being the
+latency king (33 ms). With n=200 per dataset, small differences are within
+subsample noise — the honest reading is **parity with the flagship on
+relevance ranking, from a general-purpose decision model asked explicit
 questions, zero-shot** (no relevance-training exposure), at p50 ≈ 0.2 s per
 query (30 candidates, one API call).
 
 A score-tie diagnostic (ties broken by policy-value order and by BM25 order)
 changed nothing (±0.0000 NDCG on all datasets): Jev's Score answers are
 quasi-continuous (e.g. 2.8/3), so tie-handling is not a factor here.
+
+## Latency per query
+
+Measured per query in every committed row (p50 over n=600 per system):
+
+| system | p50 | where measured |
+|---|---|---|
+| MiniLM-L6 (33M, on-GPU) | 33 ms | GPU node, local |
+| **Jev-Reranker (API)** | **199.5 ms** (p95 291) | sandbox → api.typesafe.ai |
+| Qwen3-0.6B (on-GPU) | 233.9 ms | GPU node, local |
+| BGE-v2-m3 (on-GPU) | 354.1 ms | GPU node, local |
+| Cohere v4.0-pro (API) | ~499 ms | unpaced 5-call spot-check, laptop → api.cohere.com |
+
+Two honesty notes: (1) Cohere's wall time inside the benchmark run is
+**not** usable — the trial-key throttle (7 s between calls) sat inside the
+timing window (p50 7001 ms), so the service number above comes from a tiny
+unpaced spot-check from a different vantage; (2) hosted lanes include one
+network round-trip, GPU lanes are on-node compute — treat cross-vantage
+gaps as directional. Within the hosted pair (same sandbox, same vantage),
+Jev is ~2.5× faster than Cohere's flagship while leading it on 2 of 3
+datasets.
+
+## Why BM25 is in the table (and why it isn't a "reranker")
+
+BM25 is not a reranker — it's the sparse **retrieval stage** that produced
+the top-30 candidate pool every system re-scored. Its "rerank" row is the
+identity ordering of that pool, i.e. the floor no system can beat given
+these candidates (recall@30 of the pool upper-bounds everyone). Reporting
+it is standard IR practice: it quantifies exactly how much each reranker
+adds over retrieval. The reranker-vs-reranker comparisons are the other
+five rows.
 
 ## Open-weights GPU lanes (2026-09-23, added after the hosted run)
 

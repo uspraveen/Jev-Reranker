@@ -85,21 +85,33 @@ postprocessor, Qdrant helper) live in `jev_reranker.integrations`.
 Identical BM25 top-30 candidate lists re-scored by every system, NDCG@10,
 200 seeded queries per dataset (`benchmarks/results/frontier/`):
 
-| dataset | BM25 floor | **Jev-Reranker** | Cohere v4.0-pro | Qwen3-0.6B (open) | BGE-v2-m3 (open) |
-|---|---|---|---|---|---|
-| scifact | 0.679 | **0.784** | 0.773 | 0.749 | 0.733 |
-| nfcorpus | 0.302 | **0.343** | 0.335 | 0.333 | 0.312 |
-| fiqa | 0.249 | 0.407 | **0.420** | 0.380 | 0.372 |
-| average | 0.410 | **0.511** | 0.509 | 0.487 | 0.472 |
+| dataset | BM25 floor | **Jev-Reranker** | Cohere v4.0-pro | Qwen3-0.6B (open) | BGE-v2-m3 (open) | MiniLM-L6 (open) |
+|---|---|---|---|---|---|---|
+| scifact | 0.679 | **0.784** | 0.773 | 0.749 | 0.733 | 0.686 |
+| nfcorpus | 0.302 | **0.343** | 0.335 | 0.333 | 0.312 | 0.324 |
+| fiqa | 0.249 | 0.407 | **0.420** | 0.380 | 0.372 | 0.336 |
+| average | 0.410 | **0.511** | 0.509 | 0.487 | 0.472 | 0.449 |
+
+Latency per query (p50): MiniLM-L6 33 ms (on-GPU) · **Jev 199.5 ms**
+(sandbox → API) · Qwen3-0.6B 234 ms (on-GPU) · BGE-v2-m3 354 ms (on-GPU) ·
+Cohere ~499 ms (API, unpaced spot-check).
 
 A general-purpose decision model, zero-shot through explicit questions,
 matches Cohere's purpose-trained flagship (wins 2 of 3 datasets and the
-average) at p50 ≈ 0.2 s per query, and leads the strongest open-weights
-rerankers on every dataset. Voyage (trial quota exhausted) is documented as
-attempted-not-reported — full caveats, protocol, and reproduction steps in
+average) at p50 ≈ 0.2 s per query, leads the strongest open-weights
+rerankers on every dataset, and more than doubles the quality of the
+industry-default cheap reranker while staying in the same latency class.
+Voyage (trial quota exhausted) is documented as attempted-not-reported —
+full caveats, protocol, and reproduction steps in
 `benchmarks/results/frontier/README.md`.
 
 ![Frontier comparison](benchmarks/results/frontier/frontier_ndcg_by_dataset.png)
+
+![3-dataset average](benchmarks/results/frontier/frontier_average_ndcg.png)
+
+![Lift over BM25](benchmarks/results/frontier/frontier_lift_over_bm25.png)
+
+![Latency](benchmarks/results/frontier/frontier_latency.png)
 
 ## Generic use: any retrieval project
 

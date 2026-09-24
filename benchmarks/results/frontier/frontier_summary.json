@@ -4,20 +4,23 @@
     "jev-latest": 0.7841,
     "cohere": 0.7728,
     "qwen3-reranker-0.6b": 0.7485,
-    "bge-reranker-v2-m3": 0.7328
+    "bge-reranker-v2-m3": 0.7328,
+    "ms-marco-minilm-l6-v2": 0.6861
   },
   "nfcorpus": {
     "bm25": 0.3019,
     "jev-latest": 0.3426,
     "cohere": 0.3346,
     "qwen3-reranker-0.6b": 0.333,
-    "bge-reranker-v2-m3": 0.312
+    "bge-reranker-v2-m3": 0.312,
+    "ms-marco-minilm-l6-v2": 0.324
   },
   "fiqa": {
     "bm25": 0.2485,
     "jev-latest": 0.4069,
     "cohere": 0.4198,
     "qwen3-reranker-0.6b": 0.3801,
-    "bge-reranker-v2-m3": 0.3724
+    "bge-reranker-v2-m3": 0.3724,
+    "ms-marco-minilm-l6-v2": 0.3355
   }
 }

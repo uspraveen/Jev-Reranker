@@ -18,3 +18,4 @@
 [nfcorpus] corpus=3633 sampled_queries=200
 [nfcorpus] voyage-2.5: 25/200 (2620s)
 [nfcorpus] voyage-2.5: 50/200 (5245s)
+[nfcorpus] voyage-2.5: 75/200 (7871s)
